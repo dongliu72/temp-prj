@@ -32,7 +32,6 @@
 
 
 void at_cmd_common_func_init_patch(void);
-void at_cmd_switch_uart1_dbguart(void);
 
 
 #endif /* __AT_CMD_COMMOM_PATCH_H__ */

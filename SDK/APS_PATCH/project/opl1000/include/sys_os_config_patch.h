@@ -40,9 +40,8 @@ extern "C" {
     #define OS_TASK_STACK_SIZE_WIFI_MAC_PATCH       (220)
     #define OS_TASK_STACK_SIZE_SUPPLICANT_PATCH     (412)
     #define OS_TASK_STACK_SIZE_CONTROLLER_PATCH     (264)
-    #define OS_TASK_STACK_SIZE_LE_PATCH             (512)
-    #define OS_TASK_STACK_SIZE_AT_PATCH             (256)
-    #define OS_TASK_STACK_SIZE_AT_CMD_SUPPORT_PATCH (512)
+    #define OS_TASK_STACK_SIZE_LE_PATCH             (416)
+    #define OS_TASK_STACK_SIZE_AT_PATCH             (264)
     #define OS_TASK_STACK_SIZE_AT_TX_DATA_PATCH     (116)
     #define OS_TASK_STACK_SIZE_EVENT_LOOP_PATCH     (372)
     #define OS_TASK_STACK_SIZE_TCPIP_PATCH          (484)
@@ -65,7 +64,6 @@ extern "C" {
     #define OS_TASK_STACK_SIZE_CONTROLLER_PATCH     (512)
     #define OS_TASK_STACK_SIZE_LE_PATCH             (1024)
     #define OS_TASK_STACK_SIZE_AT_PATCH             (512)
-    #define OS_TASK_STACK_SIZE_AT_CMD_SUPPORT_PATCH (512)
     #define OS_TASK_STACK_SIZE_AT_TX_DATA_PATCH     (512)
     #define OS_TASK_STACK_SIZE_EVENT_LOOP_PATCH     (512)
     #define OS_TASK_STACK_SIZE_TCPIP_PATCH          (512)
@@ -85,10 +83,7 @@ extern "C" {
 // Task - Name (max length is 15 bytes (not including '\0'))
 #define OS_TASK_NAME_AGENT              "opl_agent"
 
-
-// Enable "tid" command to dump task information
 //#define OS_TASK_INFO_DUMP
-
 
 /******************************
 Declaration of data structure

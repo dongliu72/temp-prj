@@ -70,7 +70,6 @@ Head Block of The File
 #include "lwip_jmptbl_patch.h"
 #include "cmsis_os_patch.h"
 #include "opl1000_it_patch.h"
-#include "cli_patch.h"
 
 #define __SVN_REVISION__
 #define __DIAG_TASK__
@@ -252,9 +251,6 @@ void SysInit_EntryPoint(void)
 
     // Peripheral
     peripheral_patch_init();
-    
-    // CLI
-    Cli_FuncPatchInit();
 
     // SCRT
     scrt_drv_func_init_patch();
@@ -367,9 +363,7 @@ static void Sys_DriverInit_patch(void)
     Sys_ClockSetup();
 
     // Set pin-mux
-    // cold boot
-    if (0 == Boot_CheckWarmBoot())
-        Hal_SysPinMuxAppInit();
+    Hal_SysPinMuxAppInit();
 
     // Init VIC at cold-boot
     if (!Boot_CheckWarmBoot())

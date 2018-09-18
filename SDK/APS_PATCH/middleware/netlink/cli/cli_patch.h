@@ -15,8 +15,6 @@
 
 
 E_CLI_CMD_PROC Cli_UserCmdExample(char *pbuf, int len);
-void Cli_SwitchUart1DbgUart_impl(void);
 void Cli_UserCmdProcReg(void);
-void Cli_FuncPatchInit(void);
 
 #endif  /* __CLI_PATCH_H__ */

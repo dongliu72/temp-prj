@@ -42,7 +42,6 @@ typedef enum mlme_evt_type_patch
 #define CONNECT_AP_REASON_CODE_TIMEOUT       202
 
 #define AUTO_CONNECT_DIRECT  3 // Direct connect to AP and not try next when failed.
-
 //Encrypt type recognition
 #define WIFIS_EID_RSN                48
 #define WIFIS_EID_VENDOR_SPECIFIC   221
@@ -110,5 +109,4 @@ int wifi_scan_req_by_cfg(void *cfg);
 int wpas_get_assoc_freq_patch(void);
 int wifi_sta_join_auto(u8 ap_index);
 void control_auto_connect_by_index(u8 index);
-
 #endif /* _CONTROLLER_WIFI_COM_PATCH_H_ */
