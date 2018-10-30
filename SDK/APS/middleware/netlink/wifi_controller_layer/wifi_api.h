@@ -511,6 +511,38 @@ int wifi_config_get_skip_dtim(uint8_t *value);
 int wifi_config_set_skip_dtim(uint8_t value);
 
 /**
+  * @brief     Get the Mac tx data rate in current wifi setting of OPL1000
+  *
+  * @param[out]  data_rate: Get the Mac tx data rate
+  *              - WIFI_MAC_DATA_RATE_ARA
+  *              - WIFI_MAC_DATA_RATE_1M
+  *              - WIFI_MAC_DATA_RATE_2M
+  *              - WIFI_MAC_DATA_RATE_5_5M
+  *              - WIFI_MAC_DATA_RATE_11M
+  * 
+  * @return    0  : success
+  * @return    other : failed
+  *
+ */
+int wifi_config_get_mac_tx_data_rate(wifi_mac_data_rate_t *data_rate);
+
+/**
+  * @brief     Set the Mac tx data rate setting of OPL1000
+  *
+  * @param[in]  data_rate: Set the Mac tx data rate
+  *              - WIFI_MAC_DATA_RATE_ARA
+  *              - WIFI_MAC_DATA_RATE_1M
+  *              - WIFI_MAC_DATA_RATE_2M
+  *              - WIFI_MAC_DATA_RATE_5_5M
+  *              - WIFI_MAC_DATA_RATE_11M
+  *
+  * @return    0  : success
+  * @return    other : failed
+  *
+ */
+int wifi_config_set_mac_tx_data_rate(wifi_mac_data_rate_t data_rate);
+
+/**
   * @brief     Get the auto connect mode.
   *
   * @attention 1. API returns false if try to get auto connect mode which something error
@@ -537,11 +569,11 @@ int wifi_auto_connect_get_mode(uint8_t *mode);
 int wifi_auto_connect_set_mode(uint8_t mode);
 
 /**
-  * @brief     Get the number of AP information.
+  * @brief     Get the maximum number of AP information.
   *
-  * @attention 1. API returns false if try to get auto connect numbers which something error
+  * @attention 1. API returns false if try to get maximum auto connect numbers which something error
   *
-  * @param[out]  mode: Get the number of AP information
+  * @param[out]  num: Get the maximum number of AP information
   *
   * @return    0  : success
   * @return    other : failed
@@ -549,17 +581,29 @@ int wifi_auto_connect_set_mode(uint8_t mode);
 int wifi_auto_connect_get_ap_num(uint8_t *num);
 
 /**
-  * @brief     Set the number of AP information.
+  * @brief     Set the maximum number of AP information.
   *
-  * @attention 1. API returns false if try to set auto connect numbers which something error
+  * @attention 1. API returns false if try to set maximum auto connect numbers which something error
   *
-  * @param[in]   num: The number of AP information will be saved in flash.
+  * @param[in]   num: The maximum number of AP information will be saved in flash.
   *              - Range is 1 to 3
   *
   * @return    0  : success
   * @return    other : failed
  */
 int wifi_auto_connect_set_ap_num(uint8_t num);
+
+/**
+  * @brief     Get the current number of AP save in flash.
+  *
+  * @attention 1. API returns false if try to get current auto connect numbers which something error
+  *
+  * @param[out]   num: The current number of AP information will be saved in flash.
+  *
+  * @return    0  : success
+  * @return    other : failed
+ */
+int wifi_auto_connect_get_saved_ap_num(uint8_t *num);
 
 /**
   * @brief     Get the AP information.

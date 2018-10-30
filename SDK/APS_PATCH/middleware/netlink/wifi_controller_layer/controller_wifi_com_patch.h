@@ -25,6 +25,7 @@
 #define SCAN_PASSIVE_MIN_DUR_TIME_DEF 150
 #define SCAN_MAX_NUM_OF_DUR_TIME      1500
 
+#define MAX_WIFI_RECONNECTION 10
 int send_port_security_done_event(void);
 int _wifi_get_sta_cfg_from_share_memory_patch(u8 cfg_idx, u8 *ptr);
 
@@ -37,9 +38,9 @@ typedef enum mlme_evt_type_patch
     MLME_EVT_PORT_SCRT_DONE,      // 19
 } mlme_evt_type_patch_e;
 
-#define AUTO_CONNECT_REASON_CODE_FAILED      200
-#define CONNECT_AP_REASON_CODE_NOT_FOUND     201
-#define CONNECT_AP_REASON_CODE_TIMEOUT       202
+#define CONNECT_AP_ERR_AC_FAILED          200
+#define CONNECT_AP_ERR_NOT_FOUND          201
+#define CONNECT_AP_ERR_TIMEOUT            202
 
 #define AUTO_CONNECT_DIRECT  3 // Direct connect to AP and not try next when failed.
 
@@ -60,14 +61,11 @@ typedef enum
     CONNECT_PORT_SCRT_DONE,
 } connect_done_st_e;
 
-
 typedef enum {
     WIFI_MLME_SCAN_TYPE_ACTIVE = 0,      /**< Actively scan a network by sending 802.11 probe(s)         */
     WIFI_MLME_SCAN_TYPE_PASSIVE,         /**< Passively scan a network by listening for beacons from APs */
     WIFI_MLME_SCAN_TYPE_MIX,             /**< Active + Passive */
 } E_WIFI_MLME_SCAN_TYPE;
-
-
 
 typedef struct
 {
@@ -97,6 +95,14 @@ typedef struct {
                                                          The total time will be increased by a factor of this value */
 } S_WIFI_MLME_SCAN_CFG;
 
+typedef enum {   
+    //E_WIFI_PARAM_MAC_ADDRESS=0,    
+    //E_WIFI_PARAM_SKIP_DTIM_PERIODS,
+    E_WIFI_PARAM_DATA_RATE_FIX = E_WIFI_PARAM_SKIP_DTIM_PERIODS + 1,
+    
+    /* Read only parameters */
+    //E_WIFI_PARAM_BSS_DTIM_PERIOD=200,
+}E_WIFI_PARAM_ID_EXT;
 
 /* Hidden AP connection*/
 hap_control_t *get_hap_control_struct(void);
@@ -110,5 +116,9 @@ int wifi_scan_req_by_cfg(void *cfg);
 int wpas_get_assoc_freq_patch(void);
 int wifi_sta_join_auto(u8 ap_index);
 void control_auto_connect_by_index(u8 index);
+u8 get_mac_tx_data_rate(void);
+u8 set_mac_tx_data_rate(u8 data_rate);
+void auto_connect_send_evt_failed(void);
 
 #endif /* _CONTROLLER_WIFI_COM_PATCH_H_ */
+
