@@ -322,20 +322,5 @@ Version 4.20
 	IOCTL_SERIAL_WAIT_ON_MASK control request.
 
 
-Version 4.16
-
-	New features/Enhancements
-	-------------------------
-	
-	Corrections
-        -----------
-
-	Changed behavior for IOCTL_SERIAL_LSRMST_INSERT for correct modem 
-	event insertion.
-
-
-Version 4.09
-	
-	Initial Release
 
 
