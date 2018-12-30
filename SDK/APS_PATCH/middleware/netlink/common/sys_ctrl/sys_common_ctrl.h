@@ -34,17 +34,17 @@ typedef enum {
     BASE_NVM_MAC_SRC_TYPE_ID_MAX_NUM,
 } base_nvm_mac_src_type_id_t;
 
+typedef enum {
+    SYS_COMMON_RF_TYPE_LOW = 0,
+    SYS_COMMON_RF_TYPE_HIGH,
+} sys_common_rf_type_t;
+
 int base_mac_addr_src_get_cfg(u8 iface, u8 *type);
 int base_mac_addr_src_set_cfg(u8 iface, u8 type);
 int base_nvm_mac_addr_src_read(u16 id, u16 len, void *buf);
 int base_nvm_mac_addr_src_write(u16 id, u16 len, void *ptr);
 int get_rf_power_level(u8 *level);
 int set_rf_power_level(u8 level);
-int get_dhcp_arp_check(void);
-int get_dhcp_arp_check_from_fim(void);
-int set_dhcp_arp_check(u8 mode);
-int set_dhcp_interval_retry_times(u8 dhcp_mode,u32 dhcp_interval,u8 dhcp_retry_times);
-
 
 #ifdef __cplusplus
 }

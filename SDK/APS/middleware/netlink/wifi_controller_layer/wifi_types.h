@@ -70,10 +70,6 @@ extern "C" {
 */
 #define WIFI_MAX_SUPPORTED_RATES            (8)
 
-/**@brief maximum number of WIFI channels
-*/
-#define WIFI_MAC_NUM_OF_CHANNELS             (14)
-
 /******************************************************
  *                   Enumerations
  ******************************************************/
@@ -190,17 +186,6 @@ typedef enum {
     WIFI_CIPHER_TYPE_TKIP_CCMP,     /**< 5, the cipher type is TKIP and CCMP */
     WIFI_CIPHER_TYPE_UNKNOWN,       /**< 6, the cipher type is unknown */
 } wifi_cipher_type_t;
-
-/** @brief This enumeration defines wifi mac tx data rates..
-*/
-typedef enum {
-    WIFI_MAC_DATA_RATE_ARA = 0,     /**< Auto Rate Adaptation */
-    WIFI_MAC_DATA_RATE_1M,          /**< Fix Mac Tx data rate in 1 Mbps */
-    WIFI_MAC_DATA_RATE_2M,          /**< Fix Mac Tx data rate in 2 Mbps */
-    WIFI_MAC_DATA_RATE_5_5M,        /**< Fix Mac Tx data rate in 5.5 Mbps */
-    WIFI_MAC_DATA_RATE_11M,         /**< Fix Mac Tx data rate in 11 Mbps */
-} wifi_mac_data_rate_t;
-
 /**
 * @}
 */
@@ -323,8 +308,8 @@ typedef struct {
  * @brief WiFi auto connect mode parameters
  */
 typedef enum {
-    WIFI_AUTO_CONNECT_DISABLE,
     WIFI_AUTO_CONNECT_ENABLE,
+    WIFI_AUTO_CONNECT_DISABLE,
 } wifi_auto_connet_mode_e;
 
 /**
@@ -347,13 +332,20 @@ typedef struct {
 typedef struct {
     uint8_t         bssid[WIFI_MAC_ADDRESS_LENGTH];    /* BSS ID - 48 bit HW address */
     uint8_t         ap_channel;                        /* Which Channel */
+    unsigned long long  latest_beacon_rx_time;         /* Timestamp - Last interaction with BSS */
     char            ssid[WIFI_MAX_LENGTH_OF_SSID];     /* SSID of the BSS - 33 bytes */
-    uint8_t         supported_rates[WIFI_MAX_SUPPORTED_RATES];  /* IEEE80211 supported rates */
-    int8_t          rssi;                              /* Last observed Rx Power (dBm) */
+    uint8_t         supported_rates[WIFI_MAX_SUPPORTED_RATES];
+    char            rssi;                              /* Last observed Rx Power (dBm) */
     uint16_t        beacon_interval;                   /* Beacon interval - In time units of 1024 us */
     uint16_t        capabilities;                      /* Supported capabilities */
     uint8_t         dtim_prod;                         /* DTIM Period */
-    char            hid_ssid[WIFI_MAX_LENGTH_OF_SSID]; /* Hidden SSID of the BSS. When ssid is null, using this field. */
+
+    wifi_wpa_ie_data_t   wpa_data;
+    uint8_t         rsn_ie[100];
+    uint8_t         wpa_ie[100];
+    char            passphrase[64];                    /* maximum number of passphrase is 64 bytes */
+    char            hid_ssid[WIFI_MAX_LENGTH_OF_SSID]; /* [APS write/MSQ read] Hidden SSID of the BSS. When ssid is null, using this field. */
+    uint8_t         psk[32];
     uint8_t         fast_connect;
 } wifi_auto_connect_info_t;
 

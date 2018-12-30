@@ -18,13 +18,9 @@
 #include "controller_wifi_com_patch.h"
 #include "driver_netlink_patch.h"
 
-u8 g_wifi_certification = WIFI_CERTIFIED_NONE;
-
 extern u8 g_bssid[6];
 extern u8 g_fastconn;
 extern struct wpa_supplicant *wpa_s;
-extern u8 g_wifi_reconnection_counter;
-extern char g_passphrase[MAX_LEN_OF_PASSWD];
 
 Boolean wpa_driver_netlink_sta_cfg_patch(u8 mode, u8 cmd_idx, u8 *value)
 {
@@ -57,53 +53,6 @@ Boolean wpa_driver_netlink_sta_cfg_patch(u8 mode, u8 cmd_idx, u8 *value)
     return TRUE;
 }
 
-int target_ap_security_mode_chk(u8 *mac, char *ssid)
-{
-    scan_info_t *pInfo = NULL;
-    
-    // Get AP index in scan list
-    if (!is_zero_ether_addr(mac)) {
-        pInfo = wifi_get_scan_record(mac);
-    }
-    else {
-        pInfo = wifi_get_scan_record_by_ssid(ssid);
-    }
-
-    if (pInfo == NULL) {
-        msg_print(LOG_HIGH_LEVEL, "[DRV]WPA: AP index is null \r\n");
-        return false;
-    }
-        
-    // AP security mode is off
-    if (pInfo->rsn_ie[0] == 0 && pInfo->wpa_ie[0] == 0) {
-        if (strlen(g_passphrase) != 0) {
-            msg_print(LOG_HIGH_LEVEL, "[DRV]WPA: AP mode is none security, should not has passphrase \r\n");
-            return false;
-        }
-    }
-    else {
-        if (strlen(g_passphrase) == 0) {
-            msg_print(LOG_HIGH_LEVEL, "[DRV]WPA: AP mode is security, should has passphrase \r\n");
-            return false;
-        }
-    }
-    
-    return TRUE;
-}
-
-int get_wifi_certified_mode(void)
-{
-    return g_wifi_certification;
-}
-
-int set_wifi_certified_mode(u8 mode)
-{
-    if (mode > WIFI_CERTIFIED)
-        return -1;
-    g_wifi_certification = mode;
-    return TRUE;
-}
-
 Boolean wpa_driver_netlink_connect_patch(struct wpa_config * conf)
 {
     int ret = 0;
@@ -115,24 +64,10 @@ Boolean wpa_driver_netlink_connect_patch(struct wpa_config * conf)
     if (conf == NULL) return FALSE;
     if (conf->ssid == NULL) return FALSE;
 
-    if (get_wifi_certified_mode() == WIFI_CERTIFIED) {
-        if (!target_ap_security_mode_chk(conf->ssid->bssid, (char*)conf->ssid->ssid)) {
-            ret = -1;
-            goto done;
-        }
-    }
-    
     if (wpa_driver_netlink_get_state() == WPA_ASSOCIATED ||
         wpa_driver_netlink_get_state() == WPA_COMPLETED) {
         set_repeat_conn(true);
     }
-
-#ifdef __WIFI_AUTO_CONNECT__
-    //For compatible auto/manual connect
-    if (get_auto_connect_mode() == AUTO_CONNECT_ENABLE) {
-        set_auto_connect_mode(AUTO_CONNECT_MANUAL);
-    }
-#endif
     
     if (conf->ssid->ssid == NULL) {
         wpa_printf(MSG_DEBUG, "[DRV]WPA: wpa_driver_netlink_connect, bssid:%x %x %x %x %x %x \r\n",
@@ -142,7 +77,7 @@ Boolean wpa_driver_netlink_connect_patch(struct wpa_config * conf)
         if (get_repeat_conn()) {
             msg_print(LOG_HIGH_LEVEL, "Disconnect since already connected before\r\n");
             wpa_driver_netlink_disconnect(NULL, 0);
-            goto done;
+            return TRUE;
         }
         
         wpa_supplicant_set_state(wpa_s, WPA_ASSOCIATING);
@@ -156,8 +91,7 @@ Boolean wpa_driver_netlink_connect_patch(struct wpa_config * conf)
                 hap_temp->hap_en=1;
             }
             else{
-                ret = -1;
-                goto done; // not found target AP in the list
+                return FALSE; // not found target AP in the list
             }
         }
 
@@ -168,21 +102,19 @@ Boolean wpa_driver_netlink_connect_patch(struct wpa_config * conf)
         if (get_repeat_conn()) {
             msg_print(LOG_HIGH_LEVEL, "Disconnect since already connected before\r\n");
             wpa_driver_netlink_disconnect(NULL, 0);
-            goto done;
+            return TRUE;
         }
         else if (hap_temp->hap_en) {
             hap_temp->hap_ap_info = malloc(sizeof(auto_conn_info_t));
             wifi_sta_join_for_hiddenap();
-            goto done;
+            return TRUE;
         }
         
         wpa_supplicant_set_state(wpa_s, WPA_ASSOCIATING);
         g_fastconn = 0;
-        g_wifi_reconnection_counter = 0;
         ret = wifi_sta_join(pInfo->bssid);
     }
 
-done:
     if(ret == 0) return TRUE;
     return FALSE;
 }
@@ -212,15 +144,6 @@ int wpa_driver_netlink_get_state(void)
 {
     if (wpa_s == NULL) return 0;
 	return ((int)wpa_s->wpa_state);
-}
-
-int wpa_driver_netlink_is_connected(void)
-{
-    if (wpa_driver_netlink_get_state() == WPA_ASSOCIATED ||
-        wpa_driver_netlink_get_state() == WPA_COMPLETED) {
-        return TRUE;
-    }
-    return FALSE;
 }
 
 /*
