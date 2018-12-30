@@ -79,7 +79,7 @@ struct ethernetif {
 };
 
 extern struct netif netif;
-extern sys_sem_t TxReadySem;
+
 
 /**
  * In this function, the hardware should be initialized.
@@ -142,96 +142,9 @@ low_level_init_patch(struct netif *netif)
     /* Do whatever else is needed to initialize interface. */
 }
 
-/**
- * This function should do the actual transmission of the packet. The packet is
- * contained in the pbuf that is passed to the function. This pbuf
- * might be chained.
- *
- * @param netif the lwip network interface structure for this ethernetif
- * @param p the MAC packet to send (e.g. IP packet including MAC addresses and type)
- * @return ERR_OK if the packet could be sent
- *         an err_t value if the packet couldn't be sent
- *
- * @note Returning ERR_MEM here if a DMA queue of your MAC is full can lead to
- *       strange results. You might consider waiting for space in the DMA queue
- *       to become availale since the stack doesn't retry to send a packet
- *       dropped because of memory failure (except for the TCP timers).
- */
-static err_t
-low_level_output_patch(struct netif *netif, struct pbuf *p)
-{
-    struct ethernetif *ethernetif = netif->state;
-    struct pbuf *q;
-    int full_count = 0;
-    
-    LWIP_UNUSED_ARG(ethernetif);
-
-#if ETH_PAD_SIZE
-    pbuf_header(p, -ETH_PAD_SIZE); /* drop the padding word */
-#endif
-    
-    q = p;
-        
-    if (q->next == NULL) {
-        #ifdef TX_PKT_DUMP
-            dump_buffer(q->payload, q->len, 1);
-        #endif
-        
-        while (TX_QUEUE_FULL == wifi_mac_tx_start(q->payload, q->len)) {
-            
-            sys_msleep(1);
-            
-            if (full_count == 50) {
-                //printf("__packet_tx_task: retry times reach full count. \n");
-                break;
-            }
-            
-            full_count++;
-        }
-    }
-    else {
-        q = pbuf_alloc(PBUF_RAW_TX, p->tot_len, PBUF_RAM);
-        
-        if (q != NULL) {
-            pbuf_copy(q, p);
-        }
-        else {
-            printf("__packet_tx_task: pbuf malloc failed\r\n");
-            return ERR_OK;
-        }
-
-        #ifdef TX_PKT_DUMP
-            dump_buffer(q->payload, q->len, 1);
-        #endif
-
-        while (TX_QUEUE_FULL == wifi_mac_tx_start(q->payload, q->len)) {
-            
-            sys_msleep(1);
-            
-            if (full_count == 50) {
-                //printf("__packet_tx_task: retry times reach full count. \n");
-                break;
-            }
-            
-            full_count++;
-        }
-
-        pbuf_free(q);
-    }
-
-#if ETH_PAD_SIZE
-    pbuf_header(p, ETH_PAD_SIZE); /* reclaim the padding word */
-#endif
-
-    LINK_STATS_INC(link.xmit);
-
-    return ERR_OK;
-}
-
 void lwip_load_interface_wlannetif_patch(void)
 {
     low_level_init_adpt  = low_level_init_patch;
-    low_level_output_adpt = low_level_output_patch;
     return;
 }
 

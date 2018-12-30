@@ -36,19 +36,16 @@ Head Block of The File
 ***********************/
 // Sec 0: Comment block of the file
 
-// Sec 1: Include File
+// Sec 1: Include File 
 #include <stdint.h>
 #include "hal_system.h"
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
-#define SYS_SPARE_0_M0_FLASH_ACCESS_DONE    6 // bit 6
 
 /********************************************
 Declaration of data structure
 ********************************************/
-// Sec 3: structure, union, enum, linked list...
-typedef void (*T_Hal_SysPinMuxM3UartSwitch)(void);
-typedef void (*T_Hal_Sys_DisableClock)(void);
+// Sec 3: structure, uniou, enum, linked list...
 
 /********************************************
 Declaration of Global Variables & Functions
@@ -74,11 +71,6 @@ C Functions
 void Hal_Sys_SleepInit_patch(void);
 
 /* Pin-Mux relative*/
-void Hal_SysPinMuxAppInit_patch(void);
-void Hal_SysPinMuxDownloadInit_patch(void);
-void Hal_SysPinMuxSpiFlashInit_patch(void);
-void Hal_SysPinMuxM3UartSwitch_impl(void);
-extern T_Hal_SysPinMuxM3UartSwitch Hal_SysPinMuxM3UartSwitch;
 
 /* Ret RAM relative*/
 
@@ -89,9 +81,6 @@ extern T_Hal_SysPinMuxM3UartSwitch Hal_SysPinMuxM3UartSwitch;
 /* Clock relative */
 uint32_t Hal_Sys_ApsClkTreeSetup_patch(E_ApsClkTreeSrc_t eClkTreeSrc, uint8_t u8ClkDivEn, uint8_t u8PclkDivEn );
 uint32_t Hal_Sys_MsqClkTreeSetup_patch(E_MsqClkTreeSrc_t eClkTreeSrc, uint8_t u8ClkDivEn );
-void Hal_Sys_ApsClkChangeApply_patch(void);
-void Hal_Sys_DisableClock_impl(void);
-extern T_Hal_Sys_DisableClock Hal_Sys_DisableClock;
 
 /* Remap relative */
 

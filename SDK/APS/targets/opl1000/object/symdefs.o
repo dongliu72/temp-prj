@@ -5608,7 +5608,6 @@
 0x00402944 D autoip_accept_packet_adpt
 0x00402948 D dhcp_rx_options_val
 0x00402970 D dhcp_rx_options_given
-0x0040297c D dhcp_pcb
 0x00402984 D dhcp_does_arp_check_flag
 0x00402988 D dhcp_inc_pcb_refcount_adpt
 0x0040298c D dhcp_dec_pcb_refcount_adpt
@@ -6890,7 +6889,6 @@
 0x00409604 D uart_rx_event
 0x00409608 D ps_sleep_time_s
 0x0040960c D ps_warm_boot_pybass_overflow_check
-0x00409ab8 D g_xaMemPartPCB
 0x00409d6c D mac_loopback_q
 0x00409d78 D g_taIpcCmdRbBody
 0x00409d94 D g_taIpcEvtRbBody

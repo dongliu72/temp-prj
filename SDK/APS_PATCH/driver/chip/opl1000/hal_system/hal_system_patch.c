@@ -35,13 +35,6 @@ Head Block of The File
 // Sec 1: Include File
 #include "hal_system.h"
 #include "hal_system_patch.h"
-#include "hal_wdt.h"
-#include "hal_spi.h"
-#include "hal_i2c.h"
-#include "hal_dbg_uart.h"
-#include "hal_pin.h"
-#include "hal_pin_def.h"
-#include "hal_pin_config_patch.h"
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
 #define AOS             ((S_Aos_Reg_t *) AOS_BASE)
@@ -58,33 +51,6 @@ Head Block of The File
 #define AOS_RET_SF_VOL_0P86          (0x8 << AOS_RET_SF_VOL_POS)
 #define AOS_RET_SF_VOL_1P20          (0xF << AOS_RET_SF_VOL_POS)
 
-
-//0x134
-
-#define AOS_APS_CLK_EN_I2C_PCLK      (1<<5)
-#define AOS_APS_CLK_EN_TMR_0_PCLK    (1<<6)
-#define AOS_APS_CLK_EN_TMR_1_PCLK    (1<<7)
-#define AOS_APS_CLK_EN_WDT_PCLK      (1<<8)
-#define AOS_APS_CLK_EN_SPI_0_PCLK    (1<<10)
-#define AOS_APS_CLK_EN_SPI_1_PCLK    (1<<11)
-#define AOS_APS_CLK_EN_SPI_2_PCLK    (1<<12)
-#define AOS_APS_CLK_EN_UART_0_PCLK   (1<<13)
-#define AOS_APS_CLK_EN_UART_1_PCLK   (1<<14)
-#define AOS_APS_CLK_EN_DBG_UART_PCLK (1<<15)
-#define AOS_APS_CLK_EN_OTP_PCLK      (1<<16)
-#define AOS_APS_CLK_EN_DMA_HCLK      (1<<18)
-#define AOS_APS_CLK_EN_SCRT_HCLK     (1<<24)
-#define AOS_APS_CLK_EN_PWM_CLK       (1<<26)
-#define AOS_APS_CLK_EN_JTAG_HCLK     (1<<28)
-#define AOS_APS_CLK_EN_WDT_INTERNAL  (1<<30)
-
-
-
-#define WDT_TIMEOUT_SECS            10
-
-
-
-#define STRAP_NORMAL_MODE       0xA
 
 /********************************************
 Declaration of data structure
@@ -208,8 +174,6 @@ typedef struct
 Declaration of Global Variables & Functions
 ********************************************/
 // Sec 4: declaration of global  variable
-T_Hal_Sys_DisableClock Hal_Sys_DisableClock;
-
 
 // Sec 5: declaration of global function prototype
 /* Power relative */
@@ -217,7 +181,6 @@ T_Hal_Sys_DisableClock Hal_Sys_DisableClock;
 /* Sleep Mode relative */
 
 /* Pin-Mux relative*/
-RET_DATA T_Hal_SysPinMuxM3UartSwitch Hal_SysPinMuxM3UartSwitch;
 
 /* Ret RAM relative*/
 
@@ -228,7 +191,7 @@ RET_DATA T_Hal_SysPinMuxM3UartSwitch Hal_SysPinMuxM3UartSwitch;
 /* Clock relative */
 extern uint32_t Hal_Sys_ApsClkTreeSetup_impl(E_ApsClkTreeSrc_t eClkTreeSrc, uint8_t u8ClkDivEn, uint8_t u8PclkDivEn );
 extern uint32_t Hal_Sys_MsqClkTreeSetup_impl(E_MsqClkTreeSrc_t eClkTreeSrc, uint8_t u8ClkDivEn );
-extern void Hal_Sys_ApsClkChangeApply_impl(void);
+
 /* Remap relative */
 
 /* Miscellaneous */
@@ -248,7 +211,7 @@ void Hal_Sys_SleepInit_patch(void)
 {
     // Set RetRAM voltage
     AOS->RET_SF_VAL_CTL  = AOS_RET_SF_VOL_0P86;
-
+    
     // Need make rising pulse. So clean bit first
     AOS->MODE_CTL &= ~AOS_SLP_MODE_EN;
 
@@ -262,7 +225,7 @@ void Hal_Sys_SleepInit_patch(void)
     AOS->ON6_TIME        = 0xDC03; // ON_6 0b' 0 | 1101 11 | 00 1100 0000
     AOS->ON7_TIME        = 0x6C09; // ON_7 0b' 0 | 0010 11 | 11 1111 1110
     AOS->CPOR_N_ON_TIME  = 0x041A; // CPOR 0b' 0100 1111 1111 1110
-
+	
     AOS->SPS_TIMER_PRESET = 0x0006; // SPS 0b' 00 0000 1011 0000
     AOS->SON1_TIME        = 0xDC01; // SON_1 0b' 1 | 1101 11 | 00 0010 0000
     AOS->SON2_TIME        = 0xDC02; // SON_2 0b' 1 | 1111 11 | 00 0100 0000
@@ -299,214 +262,3 @@ uint32_t Hal_Sys_MsqClkTreeSetup_patch(E_MsqClkTreeSrc_t eClkTreeSrc, uint8_t u8
     // Orignal code
     return Hal_Sys_MsqClkTreeSetup_impl( eClkTreeSrc, u8ClkDivEn );
 }
-
-/*************************************************************************
-* FUNCTION:
-*  Hal_SysPinMuxAppInit
-*
-* DESCRIPTION:
-*   1. Pin-Mux initial for application stage
-*   2. Related reg.: AOS 0x090 ~ 0x0DC
-* CALLS
-*
-* PARAMETERS
-*   None
-* RETURNS
-*   None
-* GLOBALS AFFECTED
-*
-*************************************************************************/
-void Hal_SysPinMuxAppInit_patch(void)
-{
-    Hal_Pin_ConfigSet(0, HAL_PIN_TYPE_PATCH_IO_0, HAL_PIN_DRIVING_PATCH_IO_0);
-    Hal_Pin_ConfigSet(1, HAL_PIN_TYPE_PATCH_IO_1, HAL_PIN_DRIVING_PATCH_IO_1);
-    Hal_Pin_ConfigSet(2, HAL_PIN_TYPE_PATCH_IO_2, HAL_PIN_DRIVING_PATCH_IO_2);
-    Hal_Pin_ConfigSet(3, HAL_PIN_TYPE_PATCH_IO_3, HAL_PIN_DRIVING_PATCH_IO_3);
-    Hal_Pin_ConfigSet(4, HAL_PIN_TYPE_PATCH_IO_4, HAL_PIN_DRIVING_PATCH_IO_4);
-    Hal_Pin_ConfigSet(5, HAL_PIN_TYPE_PATCH_IO_5, HAL_PIN_DRIVING_PATCH_IO_5);
-    Hal_Pin_ConfigSet(6, HAL_PIN_TYPE_PATCH_IO_6, HAL_PIN_DRIVING_PATCH_IO_6);
-    Hal_Pin_ConfigSet(7, HAL_PIN_TYPE_PATCH_IO_7, HAL_PIN_DRIVING_PATCH_IO_7);
-    Hal_Pin_ConfigSet(8, HAL_PIN_TYPE_PATCH_IO_8, HAL_PIN_DRIVING_PATCH_IO_8);
-    Hal_Pin_ConfigSet(9, HAL_PIN_TYPE_PATCH_IO_9, HAL_PIN_DRIVING_PATCH_IO_9);
-    Hal_Pin_ConfigSet(10, HAL_PIN_TYPE_PATCH_IO_10, HAL_PIN_DRIVING_PATCH_IO_10);
-    Hal_Pin_ConfigSet(11, HAL_PIN_TYPE_PATCH_IO_11, HAL_PIN_DRIVING_PATCH_IO_11);
-    Hal_Pin_ConfigSet(12, HAL_PIN_TYPE_PATCH_IO_12, HAL_PIN_DRIVING_PATCH_IO_12);
-    Hal_Pin_ConfigSet(13, HAL_PIN_TYPE_PATCH_IO_13, HAL_PIN_DRIVING_PATCH_IO_13);
-    Hal_Pin_ConfigSet(14, HAL_PIN_TYPE_PATCH_IO_14, HAL_PIN_DRIVING_PATCH_IO_14);
-    Hal_Pin_ConfigSet(15, HAL_PIN_TYPE_PATCH_IO_15, HAL_PIN_DRIVING_PATCH_IO_15);
-    Hal_Pin_ConfigSet(16, HAL_PIN_TYPE_PATCH_IO_16, HAL_PIN_DRIVING_PATCH_IO_16);
-    Hal_Pin_ConfigSet(17, HAL_PIN_TYPE_PATCH_IO_17, HAL_PIN_DRIVING_PATCH_IO_17);
-    Hal_Pin_ConfigSet(18, HAL_PIN_TYPE_PATCH_IO_18, HAL_PIN_DRIVING_PATCH_IO_18);
-    Hal_Pin_ConfigSet(19, HAL_PIN_TYPE_PATCH_IO_19, HAL_PIN_DRIVING_PATCH_IO_19);
-    Hal_Pin_ConfigSet(20, HAL_PIN_TYPE_PATCH_IO_20, HAL_PIN_DRIVING_PATCH_IO_20);
-    Hal_Pin_ConfigSet(21, HAL_PIN_TYPE_PATCH_IO_21, HAL_PIN_DRIVING_PATCH_IO_21);
-    Hal_Pin_ConfigSet(22, HAL_PIN_TYPE_PATCH_IO_22, HAL_PIN_DRIVING_PATCH_IO_22);
-    Hal_Pin_ConfigSet(23, HAL_PIN_TYPE_PATCH_IO_23, HAL_PIN_DRIVING_PATCH_IO_23);
-}
-
-/*************************************************************************
-* FUNCTION:
-*  Hal_SysPinMuxDownloadInit
-*
-* DESCRIPTION:
-*   1. Pin-Mux initial for download stage
-*   2. Related reg.: AOS 0x090 ~ 0x0DC
-* CALLS
-*
-* PARAMETERS
-*   None
-* RETURNS
-*   None
-* GLOBALS AFFECTED
-*
-*************************************************************************/
-void Hal_SysPinMuxDownloadInit_patch(void)
-{
-    Hal_SysPinMuxM3UartSwitch();
-    Hal_SysPinMuxSpiFlashInit();
-}
-
-/*************************************************************************
-* FUNCTION:
-*  Hal_SysPinMuxSpiFlashInit
-*
-* DESCRIPTION:
-*   1. Pin-Mux initial for SPI flash
-*   2. Related reg.: AOS 0x090 ~ 0x0DC
-* CALLS
-*
-* PARAMETERS
-*   None
-* RETURNS
-*   None
-* GLOBALS AFFECTED
-*
-*************************************************************************/
-void Hal_SysPinMuxSpiFlashInit_patch(void)
-{
-// SPI0 standard mode
-    // IO12(CS), IO13(CLK), IO14(MOSI), IO15(MISO)
-    Hal_Pin_ConfigSet(12, PIN_TYPE_SPI0_CS, PIN_DRIVING_FLOAT);
-    Hal_Pin_ConfigSet(13, PIN_TYPE_SPI0_CLK, PIN_DRIVING_FLOAT);
-    Hal_Pin_ConfigSet(14, PIN_TYPE_SPI0_IO_0, PIN_DRIVING_FLOAT);
-    Hal_Pin_ConfigSet(15, PIN_TYPE_SPI0_IO_1, PIN_DRIVING_FLOAT);
-}
-
-/*************************************************************************
-* FUNCTION:
-*  Hal_SysPinMuxM3UartSwitch
-*
-* DESCRIPTION:
-*   1. Pin-Mux for download stage
-*   2. Related reg.: AOS 0x090 ~ 0x0DC
-* CALLS
-*
-* PARAMETERS
-*   None
-* RETURNS
-*   None
-* GLOBALS AFFECTED
-*
-*************************************************************************/
-void Hal_SysPinMuxM3UartSwitch_impl(void)
-{
-// APS_dbg_uart
-    // IO0(TX), IO1(RX)
-    Hal_Pin_ConfigSet(0, PIN_TYPE_UART_APS_TX, PIN_DRIVING_FLOAT);
-    Hal_Pin_ConfigSet(1, PIN_TYPE_UART_APS_RX, PIN_DRIVING_FLOAT);
-    
-// UART1
-    // IO8(TX), IO9(RX)
-    Hal_Pin_ConfigSet(8, PIN_TYPE_UART1_TX, PIN_DRIVING_FLOAT);
-    Hal_Pin_ConfigSet(9, PIN_TYPE_UART1_RX, PIN_DRIVING_HIGH);
-}
-
-/*************************************************************************
-* FUNCTION:
-*  Hal_Sys_ApsClkChangeApply
-*
-* DESCRIPTION:
-*   1. Update all system clock relative
-* CALLS
-*
-* PARAMETERS
-*   None
-* RETURNS
-*   None
-* GLOBALS AFFECTED
-*
-*************************************************************************/
-void Hal_Sys_ApsClkChangeApply_patch(void)
-{
-    // FreeRTOS, update system tick.
-    // FIXME: Need used some define...
-    SysTick->LOAD =( SystemCoreClockGet()/1000 ) - 1;
-
-    // Modules (ex. I2c, SPI, PWM...)
-    // debug UART
-    if (AOS->R_M3CLK_SEL & AOS_APS_CLK_EN_DBG_UART_PCLK)
-        Hal_DbgUart_BaudRateSet( Hal_DbgUart_BaudRateGet() );
-
-    // SPI
-    if (AOS->R_M3CLK_SEL & AOS_APS_CLK_EN_SPI_0_PCLK)
-        Hal_Spi_BaudRateSet(SPI_IDX_0, Hal_Spi_BaudRateGet( SPI_IDX_0 ) );
-    if (AOS->R_M3CLK_SEL & AOS_APS_CLK_EN_SPI_1_PCLK)
-        Hal_Spi_BaudRateSet(SPI_IDX_1, Hal_Spi_BaudRateGet( SPI_IDX_1 ) );
-    if (AOS->R_M3CLK_SEL & AOS_APS_CLK_EN_SPI_2_PCLK)
-        Hal_Spi_BaudRateSet(SPI_IDX_2, Hal_Spi_BaudRateGet( SPI_IDX_2 ) );
-    
-    // I2C
-    if (AOS->R_M3CLK_SEL & AOS_APS_CLK_EN_I2C_PCLK)
-        Hal_I2c_SpeedSet( Hal_I2c_SpeedGet() );
-    
-    // WDT
-    if (AOS->R_M3CLK_SEL & AOS_APS_CLK_EN_WDT_PCLK)
-        Hal_Wdt_Feed(WDT_TIMEOUT_SECS * SystemCoreClockGet());
-    
-}
-
-
-/**
- * @brief To gate perpherials clock.
- *        When enable perpherial, API needs to turn on the clock.
- *
- * Peripherals:
- *    - I2C
- *    - TMR 0/1
- *    - WDT
- *    - SPI 0/1/2
- *    - UART 0/1
- *    - DbgUart
- *    - Pwm
- *    - Jtag
- *    - OTP
- *    - DMA
- *    - SCRT
- */
-void Hal_Sys_DisableClock_impl(void)
-{
-    uint32_t u32DisClk;
-    
-    u32DisClk = AOS_APS_CLK_EN_I2C_PCLK |
-                AOS_APS_CLK_EN_TMR_0_PCLK |
-                AOS_APS_CLK_EN_TMR_1_PCLK |
-                AOS_APS_CLK_EN_WDT_PCLK |
-                AOS_APS_CLK_EN_SPI_0_PCLK |
-                AOS_APS_CLK_EN_SPI_1_PCLK |
-                AOS_APS_CLK_EN_SPI_2_PCLK |
-                AOS_APS_CLK_EN_UART_0_PCLK |
-                AOS_APS_CLK_EN_UART_1_PCLK |
-                AOS_APS_CLK_EN_DBG_UART_PCLK |
-                AOS_APS_CLK_EN_PWM_CLK |
-                AOS_APS_CLK_EN_WDT_INTERNAL |
-                AOS_APS_CLK_EN_OTP_PCLK |
-                AOS_APS_CLK_EN_DMA_HCLK | 
-                AOS_APS_CLK_EN_SCRT_HCLK;
-    
-    if (Hal_Sys_StrapModeRead() == STRAP_NORMAL_MODE)
-        u32DisClk |= AOS_APS_CLK_EN_JTAG_HCLK;
-    
-    AOS->R_M3CLK_SEL = AOS->R_M3CLK_SEL & ~u32DisClk;    
-    
-}
-

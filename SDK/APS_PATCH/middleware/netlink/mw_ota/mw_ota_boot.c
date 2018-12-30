@@ -40,7 +40,6 @@ Head Block of The File
 #include "mw_ota_boot.h"
 #include "boot_sequence.h"
 #include "hal_dbg_uart.h"
-#include "hal_tick.h"
 
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
@@ -60,30 +59,10 @@ Head Block of The File
 #define PATTERN_BOOT        'u'
 #define PATTERN_PATCH       'p'
 #define PATTERN_ESCAPE      'e'
-#define PATTERN_CHANGE      'c'     /* Change Baud rate */
 #define PATTERN_WRITE       '1'
 #define PATTERN_ERASE       '2'
 #define PATTERN_HEADER      '3'     // OTA image header
 
-#define CHANGE_BAUD_ACK     0x5A                /* 'Z' */
-#define CHANGE_BAUD_NACK    0x00
-#define DEFAULT_WAIT_UART_DELAY         1       /* unit: ms */
-#define BEFORE_CHANGE_BAUD_DELAY        5       /* unit: ms */
-#define CHANGE_BAUD_SEND_SYNC_DELAY     95      /* unit: ms */
-
-#define HAL_DBG_UART_RX_TIMEOUT         1
-#define HAL_DBG_UART_RX_SUCCESS         0
-
-#define INIT_BAUD_RATE               115200
-
-
-
-typedef enum {
-    BAUD_115200=0x41,
-    BAUD_230400,
-    BAUD_460800,
-    BAUD_921600,
-}E_BAUD_RATE;
 
 /********************************************
 Declaration of data structure
@@ -99,7 +78,6 @@ typedef struct UART_DATA_HEADER {
 Declaration of Global Variables & Functions
 ********************************************/
 // Sec 4: declaration of global variable
-uint32_t g_u32BA_PrevSuccBaud;
 
 
 // Sec 5: declaration of global function prototype
@@ -116,8 +94,7 @@ RET_DATA T_MwOta_Boot_LoadPatchImage_Fp MwOta_Boot_LoadPatchImage;
 // internal part
 RET_DATA T_MwOta_Boot_HeaderPaser_Fp MwOta_Boot_HeaderPaser;
 RET_DATA T_MwOta_Boot_WritePatchImage_Fp MwOta_Boot_WritePatchImage;
-BootAgent_ChangeBaud_fp BootAgent_ChangeBaud;
-BootAgent_DelayMs_fp BootAgent_DelayMs;
+
 
 /***************************************************
 Declaration of static Global Variables & Functions
@@ -126,7 +103,7 @@ Declaration of static Global Variables & Functions
 
 
 // Sec 7: declaration of static function prototype
-void Boot_ChangeBaud_impl(void);
+
 
 /***********
 C Functions
@@ -164,8 +141,6 @@ uint8_t MwOta_Boot_Init_impl(void)
     // give the fake current index
     MwOta_CurrentIdxFake();
     
-    g_u32BA_PrevSuccBaud = INIT_BAUD_RATE;
-    
     return MW_OTA_OK;
 }
 
@@ -187,16 +162,13 @@ uint8_t MwOta_Boot_Init_impl(void)
 uint8_t MwOta_Boot_CheckUartBehavior_impl(void)
 {
     uint32_t ulData = 0;
-    bool bIsChangingBuad = false;
-    
+
 StartCheck:
     Boot_SendMultiData(AGENT);
+
     if (Boot_CheckPattern(PATTERN_ENTRY, BOOT_CHECK_RETRY))
     {
-        bIsChangingBuad = false;
-        g_u32BA_PrevSuccBaud = Hal_DbgUart_BaudRateGet();
         Hal_DbgUart_DataRecvTimeOut(&ulData, 1);
-
         switch(ulData)
         {
             case PATTERN_WRITE:
@@ -210,77 +182,15 @@ StartCheck:
                 MwOta_Boot_HeaderPaser();
                 goto StartCheck;
 
-            case PATTERN_CHANGE:
-                bIsChangingBuad = BootAgent_ChangeBaud();
-                goto StartCheck;
             case PATTERN_ESCAPE:
             default:
                 Boot_SendMultiData(ESCAPE);
                 break;
         }
     }
-    else if (bIsChangingBuad == true)
-    {   /* Rx ENTRY pattern fail, recover Baud rate */
-        Hal_DbgUart_BaudRateSet(g_u32BA_PrevSuccBaud);
-        bIsChangingBuad = false;
-        goto StartCheck;
-    }
     
     return 0;
 }
-
-/**
- * @brief Change buad rate process
- * 
- * Rx Baud rate setting. 
- *  - If success, send ACK and change Baud rate. Wait delay and go back to start.
- *  - If fail, send NACK and go back to start.
- * @return Changing baud rate
- *
- */
-bool BootAgent_ChangeBaud_impl(void)
-{
-    uint32_t u32Data=0xFF;
-    uint32_t u32RxStatus;
-    uint32_t u32NewBaudRate = 0;
-    
-    u32RxStatus = Hal_DbgUart_DataRecvTimeOut(&u32Data, DEFAULT_WAIT_UART_DELAY);
-    if (u32RxStatus == HAL_DBG_UART_RX_SUCCESS)
-    {
-        switch (u32Data)
-        {
-            case BAUD_115200:
-                u32NewBaudRate = 115200;
-                break;
-            case BAUD_230400:
-                u32NewBaudRate = 230400;
-                break;
-            case BAUD_460800:
-                u32NewBaudRate = 460800;
-                break;
-            case BAUD_921600:
-                u32NewBaudRate = 921600;
-                break;
-            default:
-                break;
-        }
-    }
-    if (u32NewBaudRate > 0)
-    {   /* Rx correct Baud rate */
-        Hal_DbgUart_DataSend(CHANGE_BAUD_ACK);
-        BootAgent_DelayMs(BEFORE_CHANGE_BAUD_DELAY);
-        Hal_DbgUart_BaudRateSet(u32NewBaudRate);
-        BootAgent_DelayMs(CHANGE_BAUD_SEND_SYNC_DELAY);
-        return true;
-    }
-    else
-    {
-        Hal_DbgUart_DataSend(CHANGE_BAUD_NACK);
-        return false;
-    }
-}
-
-
 
 /*************************************************************************
 * FUNCTION:
@@ -328,17 +238,25 @@ uint8_t MwOta_Boot_LoadPatchImage_impl(void)
 *************************************************************************/
 uint8_t MwOta_Boot_HeaderPaser_impl(void)
 {
-    uint8_t ubaData[64];
-    T_MwOtaFlashHeader *ptHeader;
+    T_MwOtaImageHeader tHeader;
     
     Boot_SendMultiData(START);
     
-    // receive the 64 bytes data
-    if (0 == Boot_RecvMultiData(ubaData, 64))
+    // receive the data
+    if (0 == Boot_RecvMultiData((uint8_t *)&tHeader, sizeof(T_MwOtaImageHeader)))
     {
+        // change from big-endian to little-endian
+        tHeader.uwProjectId = ((tHeader.uwProjectId & 0x00FF) << 8) + ((tHeader.uwProjectId & 0xFF00) >> 8);
+        tHeader.uwChipId = ((tHeader.uwChipId & 0x00FF) << 8) + ((tHeader.uwChipId & 0xFF00) >> 8);
+        tHeader.uwFirmwareId = ((tHeader.uwFirmwareId & 0x00FF) << 8) + ((tHeader.uwFirmwareId & 0xFF00) >> 8);
+        tHeader.uwCheckSum = ((tHeader.uwCheckSum & 0x00FF) << 8) + ((tHeader.uwCheckSum & 0xFF00) >> 8);
+        tHeader.ulImageSize = ((tHeader.ulImageSize & 0x000000FF) << 24)
+                            + ((tHeader.ulImageSize & 0x0000FF00) << 8)
+                            + ((tHeader.ulImageSize & 0x00FF0000) >> 8)
+                            + ((tHeader.ulImageSize & 0xFF000000) >> 24);
+        
         // prepare the information
-        ptHeader = (T_MwOtaFlashHeader*)ubaData;
-        if (MW_OTA_OK != MwOta_Prepare(ptHeader->uwProjectId, ptHeader->uwChipId, ptHeader->uwFirmwareId, ptHeader->ulImageSize, ptHeader->ulImageSum))
+        if (MW_OTA_OK != MwOta_Prepare(tHeader.uwProjectId, tHeader.uwChipId, tHeader.uwFirmwareId, tHeader.ulImageSize, tHeader.uwCheckSum))
         {
             Boot_SendMultiData(NACK);
             return MW_OTA_FAIL;
@@ -428,25 +346,6 @@ uint8_t MwOta_Boot_WritePatchImage_impl(void)
     return MW_OTA_OK;
 }
 
-/**
- * @brief Delay ms
- *
- */
-void BootAgent_DelayMs_impl(uint32_t u32Ms)
-{
-    uint32_t u32StartTime, u32DiffTimes;
-    uint32_t u32DelayCnt = u32Ms * SystemCoreClockGet() / 1000;
-    
-    u32StartTime = Hal_Tick_Diff(0);
-    while (1)
-    {
-        u32DiffTimes = Hal_Tick_Diff(u32StartTime);
-        if (u32DiffTimes > u32DelayCnt)
-            break;
-    }
-}
-
-
 /*************************************************************************
 * FUNCTION:
 *   MwOta_Boot_PreInitCold
@@ -469,7 +368,4 @@ void MwOta_Boot_PreInitCold(void)
     
     MwOta_Boot_HeaderPaser = MwOta_Boot_HeaderPaser_impl;
     MwOta_Boot_WritePatchImage = MwOta_Boot_WritePatchImage_impl;
-    
-    BootAgent_ChangeBaud = BootAgent_ChangeBaud_impl;
-    BootAgent_DelayMs = BootAgent_DelayMs_impl;
 }
