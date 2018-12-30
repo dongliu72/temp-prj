@@ -95,7 +95,7 @@
 //#define MBEDTLS_THREADING_FREERTOS
 
 /* enable SHA512 for home_ref_design requirement */
-//#define MBEDTLS_SHA512_C   // comment out according to Vincent's email, Aug.14 
+//#define MBEDTLS_SHA512_C
 
 #include "mbedtls/check_config.h"
 #endif /* MBEDTLS_CONFIG_H */
