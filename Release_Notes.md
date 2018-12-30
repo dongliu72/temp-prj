@@ -1,4 +1,41 @@
 ## Release Version:
+SDK Package: 1.1.1.7
+Patch_Lib : 2475
+ROM_CODE: 1655 
+
+## Release Date: 2018/9/14
+
+## Function & Feature Update 
+1. Documents updating:
+ 1.1 OPL1000-AT-instruction-set-and-examples: R05-V17,  add several new AT instruction description.    
+ 1.2 OPL1000-pinmux-tool-user-guide: R02-V05, add generated include file introduction, updated according to v0.8 SW.   
+2. Tool version information and update:
+ 2.1 download tool: v0.23. No change since v1.1.1.5.        
+ 2.2 pin-mux tool: v0.8. Add include file generation function.   
+3. All examples are updated because pinmux setting method is changed.   
+4. Firmware opl1000_at.bin is added under FW_Binary folder. This patch bin file is used to evaluate AT command. 
+5. RF HPA (high power amplifier) setting is updated. AT+RFHP instrument is supported in this release.   
+6. Refine stack size and priority of tasks.
+7. Add AT Uart and DbgUart switch function for IO0 & IO1. 
+    When  IO0/IO1 is AT uart, type AT command "at+switchdbg" will switch it to DbgUart.
+    When IO0/IO1 is Dbg uart, type CLI command  "switchat" will switch it to AT Uart.
+8. Support both new-line and none new-line mode in AT_CMD.
+
+## Bug Fix List 
+1. Fix a bug in "at+counters?" instruction.  
+2. Solve "hidden AP connection fail" problem. 
+3. Fix a bug in sleep duration calculation.
+4. Update valid range for AT+WRITEFLASH and AT+ERASEFLASH. 
+
+
+## Notes List 
+1. TCP/IP AT instructions may make stack overflow, this issue will be fixed in next release. 
+2. Websocket feature is on-developing 
+3. More examples such as MQTT, power save are on-developing. 
+
+*****
+
+## Release Version:
 SDK Package: 1.1.1.6
 Patch_Lib : 2430
 ROM_CODE: 1655 
