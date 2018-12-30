@@ -40,6 +40,7 @@
 #include "at_cmd_tcpip_patch.h"
 #include "wpa_cli_patch.h"
 #include "sys_common_api.h"
+#include "sys_os_config_patch.h"
 
 /******************************************************
  *                      Macros
@@ -82,8 +83,9 @@
 /******************************************************
  *               Variable Definitions
  ******************************************************/
-extern _at_command_t *_g_AtCmdTbl_Tcpip_Ptr;
 
+extern _at_command_t *_g_AtCmdTbl_Tcpip_Ptr;
+#if defined(__AT_CMD_SUPPORT__)
 extern volatile at_state_type_t mdState;
 extern volatile bool at_ip_mode;
 extern volatile bool at_ipMux;
@@ -106,6 +108,10 @@ extern osThreadId   at_tcp_server_task_handle;
 extern osMessageQId at_tx_task_queue_id;
 extern osPoolId     at_tx_task_pool_id;
 
+extern const osPoolDef_t os_pool_def_at_tx_task_pool;
+
+RET_DATA uint8_t g_server_mode;
+RET_DATA uint32_t g_server_port;
 
 /******************************************************
  *               Function Definitions
@@ -436,101 +442,6 @@ int at_socket_server_cleanup_task_patch(int sock)
     return 1;
 }
 
-
-/*
- * @brief Command at+cipstamac
- *
- * @param [in] argc count of parameters
- *
- * @param [in] argv parameters array
- *
- * @return 0 fail 1 success
- *
- */
-int _at_cmd_tcpip_cipstamac_patch(char *buf, int len, int mode)
-{
-    char *argv[AT_MAX_CMD_ARGS] = {0};
-    int argc = 0;
-    uint8_t ret = AT_RESULT_CODE_ERROR;
-    uint8_t mac[6] = {0};
-    char temp[64]={0};
-    char *pstr;
-    int state;
-
-    switch (mode) {
-        case AT_CMD_MODE_READ:
-            wpa_cli_getmac(mac);
-            at_sprintf(temp, "%s:\""MACSTR"\"\r\n", "+CIPSTAMAC",MAC2STR(mac));
-            msg_print_uart1(temp);
-            ret = AT_RESULT_CODE_OK;
-
-            break;
-        case AT_CMD_MODE_SET:
-            if (!_at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS)) {
-                AT_LOGI("at_cmd_buf_to_argc_argv fail\r\n");
-                goto exit;
-            }
-
-            if (argc < 2) {
-                goto exit;
-            }
-
-            pstr = at_cmd_param_trim(argv[1]);
-            if (!pstr)
-            {
-                AT_LOGI("Invalid param\r\n");
-                goto exit;
-            }
-
-            if (check_mac_addr_len(pstr) == -1) {
-                AT_LOGI("Invalid mac address, wrong length of mac address \r\n");
-                goto exit;
-            }
-
-            if (hwaddr_aton2(pstr, mac) == -1) {
-                AT_LOGI("Invalid mac address \r\n");
-                goto exit;
-            }
-
-            if (is_broadcast_ether_addr(mac)) {
-                AT_LOGI("Invalid mac address, all of mac if 0xFF \r\n");
-                goto exit;
-            }
-
-            if (is_multicast_ether_addr(mac)) {
-                AT_LOGI("Invalid mac address, not allow multicast mac address \r\n");
-                goto exit;
-            }
-
-            if (is_zero_ether_addr(mac)) {
-                AT_LOGI("Invalid mac address, all of mac is zero. \r\n");
-                goto exit;
-            }
-
-            state = wpas_get_state();
-            if(state == WPA_COMPLETED || state == WPA_ASSOCIATED) {
-                AT_LOGI("In connected, set mac address failed\r\n");
-                ret = AT_RESULT_CODE_FAIL;
-                goto exit;
-            }
-
-            wpa_cli_setmac(mac);
-
-            mac_addr_set_config_source(MAC_IFACE_WIFI_STA, MAC_SOURCE_FROM_FLASH);
-
-            ret = AT_RESULT_CODE_OK;
-
-            break;
-        default :
-            ret = AT_RESULT_CODE_IGNORE;
-            break;
-    }
-
-exit:
-    at_response_result(ret);
-
-    return true;
-}
 
 /*
  * @brief Command at+at_cmd_tcpip_cipstatus
@@ -917,6 +828,252 @@ exit:
     return true;
 }
 
+/*
+ * @brief Command at+cipserver
+ *
+ * @param [in] argc count of parameters
+ *
+ * @param [in] argv parameters array
+ *
+ * @return 0 fail 1 success
+ *
+ */
+int _at_cmd_tcpip_cipserver_patch(char *buf, int len, int mode)
+{
+    char *argv[AT_MAX_CMD_ARGS] = {0};
+    int argc = 0;
+    //char *pstr = NULL;
+    //uint8_t linkType = AT_LINK_TYPE_INVALID;
+    uint8_t para = 1;
+    int32_t server_enable = 0;
+    int32_t port = 0;
+    //int32_t ssl_ca_en = 0;
+    //at_socket_t *link;
+    uint8_t ret = AT_RESULT_CODE_ERROR;
+
+    if (!_at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS))
+    {
+        AT_LOGI("at_cmd_buf_to_argc_argv fail\r\n");
+        goto exit;
+    }
+
+    switch (mode)
+    {
+        case AT_CMD_MODE_READ:
+            msg_print_uart1("+CIPSERVER:%d,%d\r\n", g_server_mode, g_server_port);
+            ret = AT_RESULT_CODE_OK;
+            break;
+        case AT_CMD_MODE_SET:
+            if (at_ipMux == FALSE)
+            {
+                goto exit;
+            }
+            
+            server_enable = atoi(argv[para++]);
+            if (server_enable < 0 || server_enable > 1) {
+                goto exit;
+            }
+            
+            g_server_mode = server_enable;
+            
+            if (g_server_mode == 1)
+            {
+                if (para != argc)
+                {
+                    port = atoi(argv[para++]);
+                    if ((port > 65535) || (port <= 0))
+                    {
+                        goto exit;
+                    }
+                    
+                    g_server_port = port;
+                    AT_LOGI("port %d\r\n", g_server_port);
+                }
+                else
+                {
+                    g_server_port = AT_SERVER_DEFAULT_PORT;
+                }
+
+                if (para != argc)
+                {
+                    #if 0
+                    pstr = at_cmd_param_trim(argv[para++]);
+                    if (!pstr)
+                    {
+                        goto exit;
+                    }
+                    if (at_strcmp(pstr, "SSL") == NULL)
+                    {
+                        linkType = AT_LINK_TYPE_SSL;
+                    }
+                    else
+                    {
+                        linkType = AT_LINK_TYPE_TCP;
+                    }
+
+                    if (para != argc)
+                    {
+                        ssl_ca_en = atoi(argv[para++]);
+                    }
+                    #endif
+                }
+            }
+
+            if (g_server_mode == 1)
+            {
+                at_create_tcp_server(g_server_port, 0);
+            }
+            else
+            {
+                if (tcp_server_socket < 0)
+                {
+                    msg_print_uart1("no change\r\n");
+                    ret = AT_RESULT_CODE_OK;
+                    goto exit;
+                }
+                else
+                {
+                    at_socket_server_cleanup_task(tcp_server_socket);
+                    g_server_port = 0;
+                }
+            }
+            
+            ret = AT_RESULT_CODE_OK;
+            break;
+        default:
+            ret = AT_RESULT_CODE_IGNORE;
+            break;
+    }
+    
+exit:
+    at_response_result(ret);
+    return true;
+}
+
+void at_create_tcpip_tx_task_patch(void)
+{
+    osThreadDef_t task_def;
+    osMessageQDef_t queue_def;
+
+    /* Create task */
+    task_def.name = OS_TASK_NAME_AT_TX_DATA;
+    task_def.stacksize = OS_TASK_STACK_SIZE_AT_TX_DATA_PATCH;
+    task_def.tpriority = OS_TASK_PRIORITY_APP;
+    task_def.pthread = at_data_tx_task;
+    at_tx_task_id = osThreadCreate(&task_def, (void*)NULL);
+    if(at_tx_task_id == NULL)
+    {
+        AT_LOGI("at_data Tx Task create fail \r\n");
+    }
+    else
+    {
+        AT_LOGI("at_data Tx Task create successful \r\n");
+    }
+
+    /* Create memory pool */
+    at_tx_task_pool_id = osPoolCreate (osPool(at_tx_task_pool));
+    if (!at_tx_task_pool_id)
+    {
+        printf("at_data TX Task Pool create Fail \r\n");
+    }
+
+    /* Create message queue*/
+    queue_def.item_sz = sizeof(at_event_msg_t);
+    queue_def.queue_sz = AT_DATA_TASK_QUEUE_SIZE;
+    at_tx_task_queue_id = osMessageCreate(&queue_def, at_tx_task_id);
+    if(at_tx_task_queue_id == NULL)
+    {
+        printf("at_data Tx create queue fail \r\n");
+    }
+}
+#endif
+
+/*
+ * @brief Command at+cipstamac
+ *
+ * @param [in] argc count of parameters
+ *
+ * @param [in] argv parameters array
+ *
+ * @return 0 fail 1 success
+ *
+ */
+int _at_cmd_tcpip_cipstamac_patch(char *buf, int len, int mode)
+{
+    char *argv[AT_MAX_CMD_ARGS] = {0};
+    int argc = 0;
+    uint8_t ret = AT_RESULT_CODE_ERROR;
+    uint8_t mac[6] = {0};
+    char temp[64]={0};
+    char *pstr;
+
+    switch (mode) {
+        case AT_CMD_MODE_READ:
+            wpa_cli_getmac(mac);
+            at_sprintf(temp, "%s:\""MACSTR"\"\r\n", "+CIPSTAMAC",MAC2STR(mac));
+            msg_print_uart1(temp);
+            ret = AT_RESULT_CODE_OK;
+
+            break;
+        case AT_CMD_MODE_SET:
+            if (!_at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS)) {
+                AT_LOGI("at_cmd_buf_to_argc_argv fail\r\n");
+                goto exit;
+            }
+
+            if (argc < 2) {
+                goto exit;
+            }
+
+            pstr = at_cmd_param_trim(argv[1]);
+            if (!pstr)
+            {
+                AT_LOGI("Invalid param\r\n");
+                goto exit;
+            }
+
+            if (check_mac_addr_len(pstr) == -1) {
+                AT_LOGI("Invalid mac address, wrong length of mac address \r\n");
+                goto exit;
+            }
+
+            if (hwaddr_aton2(pstr, mac) == -1) {
+                AT_LOGI("Invalid mac address \r\n");
+                goto exit;
+            }
+
+            if (is_broadcast_ether_addr(mac)) {
+                AT_LOGI("Invalid mac address, all of mac if 0xFF \r\n");
+                goto exit;
+            }
+
+            if (is_multicast_ether_addr(mac)) {
+                AT_LOGI("Invalid mac address, not allow multicast mac address \r\n");
+                goto exit;
+            }
+
+            if (is_zero_ether_addr(mac)) {
+                AT_LOGI("Invalid mac address, all of mac is zero. \r\n");
+                goto exit;
+            }
+
+            wpa_cli_setmac(mac);
+
+            mac_addr_set_config_source(MAC_IFACE_WIFI_STA, MAC_SOURCE_FROM_FLASH);
+
+            ret = AT_RESULT_CODE_OK;
+
+            break;
+        default :
+            ret = AT_RESULT_CODE_IGNORE;
+            break;
+    }
+
+exit:
+    at_response_result(ret);
+
+    return true;
+}
 
 /*-------------------------------------------------------------------------------------
  * Definitions of interface function pointer
@@ -930,6 +1087,10 @@ exit:
 
 void _at_cmd_tcpip_func_init_patch(void)
 {
+    #if defined(__AT_CMD_SUPPORT__)
+    g_server_mode = 0;
+    g_server_port = 0;
+    
     at_update_link_count                = at_update_link_count_patch;
     at_close_client                     = at_close_client_patch;
     at_process_recv_socket              = at_process_recv_socket_patch;
@@ -937,11 +1098,15 @@ void _at_cmd_tcpip_func_init_patch(void)
     at_socket_server_listen_task        = at_socket_server_listen_task_patch;
     at_socket_server_create_task        = at_socket_server_create_task_patch;
     at_socket_server_cleanup_task       = at_socket_server_cleanup_task_patch;
+    at_create_tcpip_tx_task             = at_create_tcpip_tx_task_patch;
 
     /** Command Table (TCP/IP) */
     _g_AtCmdTbl_Tcpip_Ptr[0].cmd_handle  = _at_cmd_tcpip_cipstatus_patch;
     _g_AtCmdTbl_Tcpip_Ptr[2].cmd_handle  = _at_cmd_tcpip_cipstart_patch;
     _g_AtCmdTbl_Tcpip_Ptr[5].cmd_handle  = _at_cmd_tcpip_cipclose_patch;
+    _g_AtCmdTbl_Tcpip_Ptr[8].cmd_handle  = _at_cmd_tcpip_cipserver_patch;
+    #endif
     _g_AtCmdTbl_Tcpip_Ptr[16].cmd_handle = _at_cmd_tcpip_cipstamac_patch;
 }
+
 

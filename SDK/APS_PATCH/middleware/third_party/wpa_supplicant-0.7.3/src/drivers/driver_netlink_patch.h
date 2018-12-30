@@ -14,8 +14,12 @@
 
 #include "defs.h"
 
+#define WIFI_CERTIFIED_NONE 0
+#define WIFI_CERTIFIED      1
+
 void wpa_driver_func_init_patch(void);
 int wpa_driver_netlink_get_state(void);
 Boolean wpa_driver_netlink_scan_by_cfg(void *cfg);
+int wpa_driver_netlink_is_connected(void);
 
 #endif /* _DRIVER_NETLINK_PATCH_h_ */

@@ -34,15 +34,18 @@
 #include "mw_fim\mw_fim.h"
 #include "mw_fim\mw_fim_default_group01.h"
 #include "mw_fim\mw_fim_default_group02.h"
-#include "ps.h"
+#include "ps_public.h"
 
 #include "at_cmd_common_patch.h"
 #include "at_cmd_sys_patch.h"
 #include "mw_fim_default_group01_patch.h"
 #include "mw_fim_default_group02_patch.h"
+#include "mw_fim_default_group03_patch.h"
 #include "at_cmd_sys.h"
 #include "sys_common_api.h"
 #include "sys_common_types.h"
+#include "hal_pin.h"
+#include "hal_pin_def.h"
 
 #define CMD_TOKEN_SIZE          16
 #define AT_CMD_SYS_WAIT_TIME    1000   // ms
@@ -294,6 +297,61 @@ int _at_cmd_sys_gmr_patch(char *buf, int len, int mode)
     return true;
 }
 
+void _at_cmd_sys_gslp_wakeup_callback_patch(PS_WAKEUP_TYPE type)
+{
+	msg_print_uart1("\r\nAT Wakeup, Type: %s\r\n", type == PS_WAKEUP_TYPE_IO ? "IO" : "TIMEOUT");
+}
+
+void _at_cmd_sys_gslp_io_callback(E_GpioIdx_t eIdx)
+{
+    Hal_Vic_GpioIntEn(eIdx, 0);
+    ps_smart_sleep(0);
+	msg_print_uart1("AT IO ISR invoked, io_num: %d\r\n", eIdx);
+}
+
+/*
+ * @brief Command at+gslp
+ *
+ * @param [in] argc count of parameters
+ *
+ * @param [in] argv parameters array
+ *
+ * @return 0 fail 1 success
+ */
+int _at_cmd_sys_gslp_patch(char *buf, int len, int mode)
+{
+    int argc = 0;
+    char *argv[AT_MAX_CMD_ARGS] = {0};
+
+    _at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS);
+
+	switch (mode)		
+	{
+		case AT_CMD_MODE_SET:
+		{
+			int sleep_duration_ms = atoi(argv[1]);
+			int num = atoi(argv[2]);
+
+			if (argc == 3)
+            {
+                Hal_Pin_ConfigSet(num, PIN_TYPE_GPIO_INPUT, PIN_DRIVING_HIGH);
+                ps_set_wakeup_io((E_GpioIdx_t) num, 1, INT_TYPE_LEVEL, 0, _at_cmd_sys_gslp_io_callback);
+            }
+			ps_set_wakeup_cb(_at_cmd_sys_gslp_wakeup_callback_patch);
+			ps_timer_sleep(sleep_duration_ms);
+
+			msg_print_uart1("\r\nOK\r\n");
+			break;
+		}
+
+		default:
+			msg_print_uart1("\r\ndefault\r\n");
+			break;
+	}
+
+    return true;
+}
+
 /*
  * @brief Command at+restore
  *
@@ -324,16 +382,22 @@ int _at_cmd_sys_restore_patch(char *buf, int len, int mode)
         }
 
         // rest STA information
-        MwFim_FileWriteDefault(MW_FIM_IDX_GP02_PATCH_STA_MAC_ADDR, 0);
+        MwFim_FileWriteDefault(MW_FIM_IDX_GP03_PATCH_STA_MAC_ADDR, 0);
         MwFim_FileWriteDefault(MW_FIM_IDX_GP02_PATCH_STA_SKIP_DTIM, 0);
         
         // Mac address source
-        MwFim_FileWriteDefault(MW_FIM_IDX_GP01_MAC_ADDR_WIFI_STA_SRC, 0);
-        MwFim_FileWriteDefault(MW_FIM_IDX_GP01_MAC_ADDR_WIFI_SOFTAP_SRC, 0);
-        MwFim_FileWriteDefault(MW_FIM_IDX_GP01_MAC_ADDR_BLE_SRC, 0);
+        MwFim_FileWriteDefault(MW_FIM_IDX_GP03_PATCH_MAC_ADDR_WIFI_STA_SRC, 0);
+        MwFim_FileWriteDefault(MW_FIM_IDX_GP03_PATCH_MAC_ADDR_WIFI_SOFTAP_SRC, 0);
+        MwFim_FileWriteDefault(MW_FIM_IDX_GP03_PATCH_MAC_ADDR_BLE_SRC, 0);
         
         // RF power
         MwFim_FileWriteDefault(MW_FIM_IDX_GP01_RF_CFG, 0);
+        
+        // DHCP ARP
+        MwFim_FileWriteDefault(MW_FIM_IDX_DHCP_ARP_CHK, 0);
+        
+        // Mac data rate
+        MwFim_FileWriteDefault(MW_FIM_IDX_MAC_TX_DATA_RATE, 0);
         
         msg_print_uart1("\r\nOK\r\n");
 
@@ -428,15 +492,97 @@ int _at_cmd_sys_uartdef_patch(char *buf, int len, int mode)
 }
 
 /*
+ * @brief Command at+sleep
+ *
+ * @param [in] argc count of parameters
+ *
+ * @param [in] argv parameters array
+ *
+ * @return 0 fail 1 success
+ *
+ */
+int _at_cmd_sys_sleep_patch(char *buf, int len, int mode)
+{
+    int argc = 0;
+    char *argv[AT_MAX_CMD_ARGS] = {0};
+
+    _at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS);
+
+	switch (mode)
+	{
+		case AT_CMD_MODE_SET:
+		{
+			int slp_mode = atoi(argv[1]);
+			int p1 = atoi(argv[2]);
+			int p2 = atoi(argv[3]);
+
+			switch (slp_mode)
+			{
+				case 0:
+					ps_smart_sleep(0);
+					msg_print_uart1("\r\nOK\r\n");
+					break;
+
+				case 1:
+					if (argc == 3)
+                    {
+                        Hal_Pin_ConfigSet(p1, PIN_TYPE_GPIO_INPUT, PIN_DRIVING_HIGH);
+                        ps_set_wakeup_io((E_GpioIdx_t) p1, 1, INT_TYPE_LEVEL, 0, _at_cmd_sys_gslp_io_callback);
+                    }
+                    ps_set_wakeup_cb(_at_cmd_sys_gslp_wakeup_callback_patch);
+					ps_smart_sleep(1);
+					msg_print_uart1("\r\nOK\r\n");
+					break;
+
+				case 2:
+					if (argc == 4)
+                    {
+                        Hal_Pin_ConfigSet(p2, PIN_TYPE_GPIO_INPUT, PIN_DRIVING_HIGH);
+                        ps_set_wakeup_io((E_GpioIdx_t) p2, 1, INT_TYPE_LEVEL, 0, _at_cmd_sys_gslp_io_callback);
+                    }
+					ps_set_wakeup_cb(_at_cmd_sys_gslp_wakeup_callback_patch);
+					ps_timer_sleep(p1);
+					msg_print_uart1("\r\nOK\r\n");
+					break;
+
+				case 3:
+					if (argc == 3)
+                    {
+                        Hal_Pin_ConfigSet(p1, PIN_TYPE_GPIO_INPUT, PIN_DRIVING_HIGH);
+                        ps_set_wakeup_io((E_GpioIdx_t) p1, 1, INT_TYPE_LEVEL, 0, NULL);
+                    }
+					ps_deep_sleep();
+					msg_print_uart1("\r\nOK\r\n");
+					break;
+
+				default:
+					msg_print_uart1("\r\nERROR\r\n");
+					break;
+			}
+			break;
+		}
+		default:
+			msg_print_uart1("\r\nERROR\r\n");
+			break;
+	}
+
+    return true;
+}
+
+/*
  * @brief AT Command Interface Initialization for System modules
  *
  */
 extern _at_command_t *_g_AtCmdTbl_Sys_Ptr;
+#if defined(__AT_CMD_SUPPORT__)
 void _at_cmd_sys_func_patch_init(void)
 {
     // index = 1, it means "at+gmr"
     _g_AtCmdTbl_Sys_Ptr[1].cmd_handle = _at_cmd_sys_gmr_patch;
+	_g_AtCmdTbl_Sys_Ptr[2].cmd_handle = _at_cmd_sys_gslp_patch;
     _g_AtCmdTbl_Sys_Ptr[3].cmd_handle = _at_cmd_sys_restore_patch;
     _g_AtCmdTbl_Sys_Ptr[4].cmd_handle = _at_cmd_sys_uartcur_patch;
     _g_AtCmdTbl_Sys_Ptr[5].cmd_handle = _at_cmd_sys_uartdef_patch;
+	_g_AtCmdTbl_Sys_Ptr[7].cmd_handle = _at_cmd_sys_sleep_patch;
 }
+#endif

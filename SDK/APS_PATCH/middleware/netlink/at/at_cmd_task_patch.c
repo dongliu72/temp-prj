@@ -25,6 +25,7 @@
 #include "sys_os_config.h"
 
 #include "at_cmd_task_patch.h"
+#include "sys_os_config_patch.h"
 
 #define CONFIG_MAX_SOCKETS_NUM      5
 
@@ -52,6 +53,10 @@ extern RET_DATA osPoolId AtMemPoolId;
  */
 extern RET_DATA osSemaphoreId at_semaId;
 
+/** @brief Semaphore for switch Dbguart and AT UART at IO0/IO1 */
+osSemaphoreId g_tSwitchuartSem;
+
+
 extern const osPoolDef_t os_pool_def_atMemPool;
 extern const osSemaphoreDef_t os_semaphore_def_at_sema;
 
@@ -67,10 +72,17 @@ void at_module_init_patch(uint32_t netconn_max, const char *custom_version)
 {
     osMessageQDef_t at_queue_def;
     osThreadDef_t at_task_def;
-
+    osSemaphoreDef_t tSemDef = {0};
+    
     /** create task */
     at_task_def.name = OS_TASK_NAME_AT;
-    at_task_def.stacksize = OS_TASK_STACK_SIZE_DIAG;
+
+#if defined(__AT_CMD_SUPPORT__)
+    at_task_def.stacksize = OS_TASK_STACK_SIZE_AT_CMD_SUPPORT_PATCH;
+#else
+    at_task_def.stacksize = OS_TASK_STACK_SIZE_AT_PATCH;
+#endif
+    
     at_task_def.tpriority = OS_TASK_PRIORITY_DIAG;
     at_task_def.pthread = at_task;
     AtTaskHandle = osThreadCreate(&at_task_def, (void *)AtTaskHandle);
@@ -98,7 +110,15 @@ void at_module_init_patch(uint32_t netconn_max, const char *custom_version)
         tracer_log(LOG_HIGH_LEVEL, "create queue fail \r\n");
         msg_print_uart1("create queue fail \r\n");
     }
-
+    
+    /* Create semaphore for switch UART */    
+    g_tSwitchuartSem = osSemaphoreCreate(&tSemDef, 1);
+    if (g_tSwitchuartSem == NULL)
+    {
+        tracer_log(LOG_HIGH_LEVEL, "create semaphore fail \r\n");
+        msg_print_uart1("create swUART sema fail \r\n");
+    }
+    
     //move from sys_init
     uart1_mode_set_default();
 
@@ -155,7 +175,7 @@ osStatus at_task_send_patch(xATMessage txMsg)
             msg_print_uart1("at task message allocate fail \r\n");
             goto done;
         }
-        
+
         memcpy((void *)pMsg->pcMessage, (void *)txMsg.pcMessage, txMsg.length);
     }
 
@@ -175,7 +195,7 @@ done:
             {
                 free(pMsg->pcMessage);
             }
-    
+
             osPoolFree(AtMemPoolId, pMsg);
         }
     }
@@ -209,7 +229,7 @@ void at_task_patch(void *pvParameters)
         {
             pData = (at_uart_buffer_t *)rxMsg->pcMessage;
 			at_task_cmd_process(pData->buf, strlen(pData->buf));
-            at_clear_uart_buffer();
+            //at_clear_uart_buffer();
         }
 
         if(rxMsg->pcMessage != NULL) free(rxMsg->pcMessage);
