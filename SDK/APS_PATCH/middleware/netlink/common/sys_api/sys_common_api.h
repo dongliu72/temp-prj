@@ -99,71 +99,21 @@ int mac_addr_set_config_source(mac_iface_t iface, mac_source_type_t type);
   * @return    0  : success
   * @return    other : failed
  */
-int sys_get_config_rf_power_level(uint8_t *level);
+int sys_get_config_rf_power_level(sys_rf_power_level_t *level);
 
 /**
   * @brief     Set the configuration of RF power level
   *
   * @attention 1. API returns false if try to set Configuration which something error
   *
-  * @param[in]   level: The level of RF power.
-  *              - [7:4] WiFi Power level. 0 for lowest and 0xF for highest
-  *              - [3:0] BLE Power level. 0 for lowest and 0xF for highest
+  * @param[in]   level: The level of RF power
+  *              - SYS_RF_LOW_POWER
+  *              - SYS_RF_HIGH_POWER
   *
   * @return    0  : success
   * @return    other : failed
  */
-int sys_set_config_rf_power_level(uint8_t level);
-
-/**
-  * @brief     Get the configuration of DHCP ARP check mechanism
-  *
-  * @attention 1. API returns false if try to set Configuration which something error
-  * @attention 2. Default is Enable.
-  *
-  * @param[out]   mode: Enable/Disable DHCP ARP check mechanism
-  *              - 0 : Disable
-  *              - 1 : Enable
-  *
-  * @return    0  : success
-  * @return    other : failed
- */
-int tcp_get_config_dhcp_arp_check(uint8_t *mode);
-
-/**
-  * @brief     Set the configuration of DHCP ARP check mechanism
-  *
-  * @attention 1. API returns false if try to set Configuration which something error
-  *
-  * @param[in]   mode: Enable/Disable DHCP ARP check mechanism
-  *              - 0 : Disable
-  *              - 1 : Enable
-  *
-  * @return    0  : success
-  * @return    other : failed
- */
-int tcp_set_config_dhcp_arp_check(uint8_t mode);
-
-/**
-  * @brief     Set the configuration of DHCP retry mode,retry interval and maximum retry count 
-  *
-  * @attention 1. API returns false if try to set Configuration which something error
-  *
-  * @param[in]   dhcp_mode: specified DHCP retry mechanism
-  *              - 0 : Fix mode , this mode will send DHCP discover packet in fix frequency which you set in dhcp_interval   
-  *              - 1 : Exponential mode , when DHCP get IP fail, this mode will make DHCP discover packet sending interval increase as exponential rate 
-  *
-  * @param[in]   dhcp_interval: 
-  *              - In Fix mode, recommand to set this value to 1000,1500,2000 or 2500 (ms).        
-  *              - In Exponential mode, recommand to set this value to 250,500,750 or 1000 (ms)
-  *
-  * @param[in]   dhcp_retry_times: specified the maximum DHCP retry times
-  *              - In Fix mode, recommand to set this value to 1~255
-  *              - In Exponential mode, recommand to set this value to 9
-  * @return    0  : success
-  * @return    other : failed
- */
-int tcp_set_dhcp_interval_retry_times(uint8_t dhcp_mode,uint32_t dhcp_interval,uint8_t dhcp_retry_times);
+int sys_set_config_rf_power_level(sys_rf_power_level_t level);
 
 #ifdef __cplusplus
 }

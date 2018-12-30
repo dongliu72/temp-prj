@@ -38,17 +38,9 @@
 #include "at_cmd_msg_ext.h"
 #include "at_cmd_msg_ext.h"
 #include "controller_wifi_com_patch.h"
-#include "sys_os_config_patch.h"
-
-extern RET_DATA osMessageQId    xSupplicantQueue;
-extern RET_DATA osThreadId      SupplicantTaskHandle;
-extern RET_DATA osPoolId        supplicantMemPoolId;
 
 extern struct wpa_supplicant *wpa_s;
 extern auto_connect_cfg_t g_AutoConnect; //Fast Connect Report
-
-//osPoolDef (supplicantMemPoolId, SUPP_QUEUE_SIZE, xSupplicantMessage_t); // memory pool object
-extern const osPoolDef_t os_pool_def_supplicantMemPoolId;
 
 void supplicant_task_evt_handle_patch(uint32_t evt_type)
 {
@@ -73,8 +65,7 @@ void supplicant_task_evt_handle_patch(uint32_t evt_type)
             wpa_supplicant_event_disassoc(wpa_s, WLAN_REASON_DEAUTH_LEAVING);
             wpa_supplicant_set_state(wpa_s, WPA_DISCONNECTED);
             /* Set successfully connect info to Auto Connect list */
-            if (get_auto_connect_mode() == AUTO_CONNECT_MANUAL ||
-                get_auto_connect_mode() == AUTO_CONNECT_DIRECT) {
+            if (get_auto_connect_mode() == AUTO_CONNECT_MANUAL) {
                 set_auto_connect_mode(AUTO_CONNECT_ENABLE);
             }
 			break;
@@ -98,8 +89,7 @@ void supplicant_task_evt_handle_patch(uint32_t evt_type)
             wpa_supplicant_set_state(wpa_s, WPA_DISCONNECTED);
             wpa_clr_key_info();
             /* Set successfully connect info to Auto Connect list */
-            if ((get_auto_connect_mode() == AUTO_CONNECT_MANUAL ||
-                 get_auto_connect_mode() == AUTO_CONNECT_DIRECT) && 
+            if (get_auto_connect_mode() == AUTO_CONNECT_MANUAL && 
                 !get_repeat_conn()) {
                 set_auto_connect_mode(AUTO_CONNECT_ENABLE);
             }
@@ -110,8 +100,7 @@ void supplicant_task_evt_handle_patch(uint32_t evt_type)
             msg_print(LOG_HIGH_LEVEL, "\r\n\r\nconnect time out\r\n\r\n");
             wpa_supplicant_set_state(wpa_s, WPA_INACTIVE);
             /* Set successfully connect info to Auto Connect list */
-            if (get_auto_connect_mode() == AUTO_CONNECT_MANUAL ||
-                get_auto_connect_mode() == AUTO_CONNECT_DIRECT) {
+            if (get_auto_connect_mode() == AUTO_CONNECT_MANUAL) {
                 set_auto_connect_mode(AUTO_CONNECT_ENABLE);
             }
             break;
@@ -132,8 +121,7 @@ void supplicant_task_evt_handle_patch(uint32_t evt_type)
             msg_print(LOG_HIGH_LEVEL, "[EVT]WPA: Event-MLME_EVT_ASSOC_TIMED_OUT \r\n");
             msg_print(LOG_HIGH_LEVEL, "\r\n\r\nconnect time out\r\n\r\n");
             /* Set successfully connect info to Auto Connect list */
-            if (get_auto_connect_mode() == AUTO_CONNECT_MANUAL ||
-                get_auto_connect_mode() == AUTO_CONNECT_DIRECT) {
+            if (get_auto_connect_mode() == AUTO_CONNECT_MANUAL) {
                 set_auto_connect_mode(AUTO_CONNECT_ENABLE);
             }
             break;
@@ -145,8 +133,7 @@ void supplicant_task_evt_handle_patch(uint32_t evt_type)
                 wifi_sta_join_for_hiddenap();
                 break;
             }
-            if (get_auto_connect_mode() == AUTO_CONNECT_MANUAL ||
-                get_auto_connect_mode() == AUTO_CONNECT_DIRECT) {
+            if (get_auto_connect_mode() == AUTO_CONNECT_MANUAL) {
                 set_auto_connect_mode(AUTO_CONNECT_ENABLE);
             }
             break;
@@ -164,48 +151,10 @@ void supplicant_task_evt_handle_patch(uint32_t evt_type)
 	}
 }
 
-void supplicant_task_create_patch(void)
-{
-    osThreadDef_t   task_def;
-    osMessageQDef_t queue_def;
-
-    //create task
-    task_def.name = OS_TASK_NAME_SUPPLICANT;
-    task_def.stacksize = OS_TASK_STACK_SIZE_SUPPLICANT_PATCH;
-    task_def.tpriority = OS_TASK_PRIORITY_SUPPLICANT;
-    task_def.pthread = supplicant_task;
-    SupplicantTaskHandle = osThreadCreate(&task_def, (void *)SupplicantTaskHandle);
-    if(SupplicantTaskHandle == NULL)
-    {
-        msg_print(LOG_HIGH_LEVEL, "Supplicant task is created failed! \r\n");
-    }
-    else
-    {
-        msg_print(LOG_HIGH_LEVEL, "Supplicant task is created successfully! \r\n");
-    }
-
-    //create memory pool
-    supplicantMemPoolId = osPoolCreate (osPool(supplicantMemPoolId)); // create Mem Pool
-    if (!supplicantMemPoolId)
-    {
-        msg_print(LOG_HIGH_LEVEL, "Supplicant Task Mem Pool create Fail \r\n"); // MemPool object not created, handle failure
-    }
-
-    //create queue
-    queue_def.item_sz = sizeof( xSupplicantMessage_t );
-    queue_def.queue_sz = SUPP_QUEUE_SIZE;
-    xSupplicantQueue = osMessageCreate(&queue_def, SupplicantTaskHandle);
-    if(xSupplicantQueue == NULL)
-    {
-        msg_print(LOG_HIGH_LEVEL, "Supplicant Task Queue fail \r\n");
-    }
-}
-
 /*
    Interface Initialization: Supplicant Task
  */
 void wpa_supplicant_task_func_init_patch(void)
 {
     supplicant_task_evt_handle = supplicant_task_evt_handle_patch;
-    supplicant_task_create = supplicant_task_create_patch;
 }
