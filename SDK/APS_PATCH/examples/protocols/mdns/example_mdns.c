@@ -47,7 +47,7 @@ static void srv_txt(struct mdns_service *service, void *txt_userdata)
 
 err_t mdns_example_init()
 {
-	  err_t ret; 
+    err_t ret; 
     printf("\r\nmdns resp init! \r\n");
     mdns_resp_init();
     
@@ -122,7 +122,7 @@ int wifi_connection(void)
 
     } else {
         /* Scan Again */
-        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
+        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
     }
 
     return 0;
@@ -135,7 +135,7 @@ int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
     case WIFI_EVENT_STA_START:
         printf("\r\nWi-Fi Start \r\n");
         wifi_wait_ready();
-        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
+        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
         break;
     case WIFI_EVENT_STA_CONNECTED:
         lwip_net_start(WIFI_MODE_STA);
@@ -144,7 +144,7 @@ int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
         break;
     case WIFI_EVENT_STA_DISCONNECTED:
         printf("\r\nWi-Fi Disconnected \r\n");
-        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
+        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
         g_connect_flag = false;
         break;
     case WIFI_EVENT_SCAN_COMPLETE:
@@ -157,7 +157,7 @@ int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
         break;
     case WIFI_EVENT_STA_CONNECTION_FAILED:
         printf("\r\nWi-Fi Connected failed\r\n");
-        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
+        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
         break;
     default:
         printf("\r\n Unknown Event %d \r\n", event_id);
@@ -180,22 +180,22 @@ void user_wifi_app_entry(void *args)
         {
             printf("OPL1000 is connected to AP \r\n");
             osDelay(2000);
-					
-					  if (g_mdns_service_setup == false)
-						{
-								ret = mdns_example_init();
-           
-								if (ret == ERR_OK)
-								{
-									g_mdns_service_setup = true; 
-								}			
-						}							
+
+            if (g_mdns_service_setup == false)
+            {
+                ret = mdns_example_init();
+
+                if (ret == ERR_OK)
+                {
+                    g_mdns_service_setup = true; 
+                }
+            }
         }
         else 
         {
             printf("OPL1000 is not connected to AP \r\n");
         } 
-				osDelay(1000);
+        osDelay(1000);
     }
 }
 
