@@ -45,9 +45,14 @@ Head Block of The File
 #include "hal_wdt.h"
 #include "hal_pwm.h"
 #include "hal_dma.h"
+#include "hal_auxadc.h"
+#include "hal_auxadc_internal.h"
 
 #include "hal_flash_patch.h"
 #include "hal_system_patch.h"
+#include "hal_auxadc_patch.h"
+#include "hal_i2c_patch.h"
+#include "hal_pwm_patch.h"
 
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
@@ -85,25 +90,33 @@ C Functions
 /*************************************************************************
 * FUNCTION:
 *  peripheral_patch_init
-* 
+*
 * DESCRIPTION:
 *   1. The function implements initial of peripheral patch function.
-* 
+*
 * CALLS
-* 
+*
 * PARAMETERS
-* 
+*
 * RETURNS
-* 
+*
 * GLOBALS AFFECTED
-* 
+*
 *************************************************************************/
 void peripheral_patch_init(void)
 {
     // vic and GPIO
 
     // system (AOS+sys_reg)
-
+    Hal_Sys_SleepInit       = Hal_Sys_SleepInit_patch;
+    Hal_Sys_ApsClkTreeSetup = Hal_Sys_ApsClkTreeSetup_patch;
+    Hal_Sys_MsqClkTreeSetup = Hal_Sys_MsqClkTreeSetup_patch;
+    Hal_Sys_ApsClkChangeApply = Hal_Sys_ApsClkChangeApply_patch;
+    Hal_SysPinMuxAppInit      = Hal_SysPinMuxAppInit_patch;
+    Hal_SysPinMuxDownloadInit = Hal_SysPinMuxDownloadInit_patch;
+    Hal_SysPinMuxM3UartInit   = Hal_SysPinMuxM3UartInit_impl;
+    Hal_SysPinMuxM3UartSwitch = Hal_SysPinMuxM3UartSwitch_impl;
+    Hal_Sys_DisableClock      = Hal_Sys_DisableClock_impl;
     // dbg_uart
 
     // uart
@@ -115,17 +128,18 @@ void peripheral_patch_init(void)
     Hal_Flash_AddrRead_Internal    = Hal_Flash_AddrRead_Internal_patch;
 
     // i2c
+    _Hal_I2c_Eanble = _Hal_I2c_Eanble_patch;
 
     // tmr
 
     // wdt
 
     // pwm
+    Hal_Pwm_Init = Hal_Pwm_Init_patch;
 
     // dma
-
-    // Peripheral
-    Hal_Sys_SleepInit = Hal_Sys_SleepInit_patch;
-    Hal_Sys_ApsClkTreeSetup = Hal_Sys_ApsClkTreeSetup_patch;
-    Hal_Sys_MsqClkTreeSetup = Hal_Sys_MsqClkTreeSetup_patch;
+    
+    // auxadc
+    g_ulHalAux_AverageCount = HAL_AUX_AVERAGE_COUNT;
+    Hal_Aux_AdcValueGet = Hal_Aux_AdcValueGet_patch;
 }
