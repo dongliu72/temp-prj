@@ -123,6 +123,7 @@ typedef enum
     SCRT_TOKEN_ID_HMAC_SHA_1 = 0xE0D0,
     SCRT_TOKEN_ID_AES_ECB = 0xE0E0,
     SCRT_TOKEN_ID_AES_CMAC = 0xE0F0,
+    SCRT_TOKEN_ID_SHA = 0xE100,
 
     SCRT_TOKEN_ID_MAX = 0xEFFF
 } T_ScrtTokenId;
@@ -181,6 +182,11 @@ extern RET_DATA nl_scrt_key_delete_fp_t nl_scrt_key_delete;
 
 RET_DATA nl_scrt_aes_cmac_fp_t nl_scrt_aes_cmac_get;
 //RET_DATA nl_scrt_hmac_sha_1_step_fp_t nl_scrt_hmac_sha_1_step;
+//RET_DATA nl_scrt_sha_1_fp_t nl_scrt_sha_1;
+//RET_DATA nl_scrt_sha_256_fp_t nl_scrt_sha_256;
+
+RET_DATA nl_scrt_sha_fp_t nl_scrt_sha;
+
 
 extern T_ScrtRes g_tScrtRes[SCRT_MB_IDX_MAX];
 extern osSemaphoreId g_tScrtResSem;
@@ -516,7 +522,7 @@ int nl_scrt_hmac_sha_1_step_patch(uint8_t type, uint32_t total_len, uint8_t *sk,
     uint8_t u8Link = 0;
     #endif
 
-    if(type >= SCRT_MAC_STEP_MAX)
+    if(type >= SCRT_STEP_MAX)
     {
         SCRT_LOGE("[%s %d] invalid type[%d]\n", __func__, __LINE__, type);
         goto done;
@@ -530,7 +536,7 @@ int nl_scrt_hmac_sha_1_step_patch(uint8_t type, uint32_t total_len, uint8_t *sk,
         goto done;
     }
 
-    if(type == SCRT_MAC_STEP_FINAL)
+    if(type == SCRT_STEP_FINAL)
     {
         u32DataLen = in_data_len;
     }
@@ -581,15 +587,15 @@ int nl_scrt_hmac_sha_1_step_patch(uint8_t type, uint32_t total_len, uint8_t *sk,
 
     switch(type)
     {
-    case SCRT_MAC_STEP_NEW:
+    case SCRT_STEP_NEW:
         u8Mode = 0x02;
         break;
 
-    case SCRT_MAC_STEP_CONTINUE:
+    case SCRT_STEP_CONTINUE:
         u8Mode = 0x03;
         break;
 
-    case SCRT_MAC_STEP_FINAL:
+    case SCRT_STEP_FINAL:
         u8Mode = 0x01;
         break;
 
@@ -602,15 +608,15 @@ int nl_scrt_hmac_sha_1_step_patch(uint8_t type, uint32_t total_len, uint8_t *sk,
     u32aBase[6] = word_6;      //key length: 0x08  ;  [3:0] Algorithm  HMAC-SHA-1, 160-bit MAC, block size is 64 Bytes
     u32aBase[7] = 0x00000000;
 
-    if(type == SCRT_MAC_STEP_NEW)
+    if(type == SCRT_STEP_NEW)
     {
         // clear intermediate MAC (word 8 ~ 15)
-        memset((void *)&(u32aBase[8]), 0, SCRT_HMAC_SHA_1_INTER_MAC_LEN);
+        memset((void *)&(u32aBase[8]), 0, SCRT_SHA_1_INTER_MAC_LEN);
     }
     else
     {
         // copy intermediate MAC (word 8 ~ 15)
-        memcpy((void *)&(u32aBase[8]), mac, SCRT_HMAC_SHA_1_INTER_MAC_LEN);
+        memcpy((void *)&(u32aBase[8]), mac, SCRT_SHA_1_INTER_MAC_LEN);
     }
 
     u32aBase[16] = 0x00000000;
@@ -623,7 +629,7 @@ int nl_scrt_hmac_sha_1_step_patch(uint8_t type, uint32_t total_len, uint8_t *sk,
     u32aBase[23] = 0x00000000;
 
     //word 24
-    if(type == SCRT_MAC_STEP_FINAL)
+    if(type == SCRT_STEP_FINAL)
     {
         u32aBase[24] = total_len;
     }
@@ -676,14 +682,14 @@ int nl_scrt_hmac_sha_1_step_patch(uint8_t type, uint32_t total_len, uint8_t *sk,
         #endif
     }
 
-    if(type == SCRT_MAC_STEP_FINAL)
+    if(type == SCRT_STEP_FINAL)
     {
         /* Copy the output MAC data */
-        memcpy((void *)mac, (void *)&(u32aBase[2]), SCRT_HMAC_SHA_1_OUTPUT_LEN);
+        memcpy((void *)mac, (void *)&(u32aBase[2]), SCRT_SHA_1_OUTPUT_LEN);
     }
     else
     {
-        memcpy((void *)mac, (void *)&(u32aBase[2]), SCRT_HMAC_SHA_1_INTER_MAC_LEN);
+        memcpy((void *)mac, (void *)&(u32aBase[2]), SCRT_SHA_1_INTER_MAC_LEN);
     }
 
     *u32aStatus = SCRT_CTRL_READ_MSK(g_tScrtRes[u8ResId].u8MbIdx);
@@ -1208,8 +1214,6 @@ done:
     return status;
 }
 
-<<<<<<< HEAD
-=======
 int nl_scrt_sha_patch(uint8_t u8Type, uint8_t u8Step, uint32_t u32TotalLen, uint8_t *u8aData, uint32_t u32DataLen, uint8_t u8HasInterMac, uint8_t *u8aMac)
 {
     int status = 0;
@@ -1553,7 +1557,6 @@ uint8_t scrt_res_alloc_patch(void)
     return u8Idx;
 }
 
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 /*
  * scrt_drv_func_init - Interface Initialization: SCRT
  *
@@ -1563,13 +1566,10 @@ void scrt_drv_func_init_patch(void)
     nl_scrt_aes_cmac_get = nl_scrt_aes_cmac_patch;
     nl_scrt_aes_ccm = nl_scrt_aes_ccm_patch;
     nl_scrt_aes_ecb = nl_scrt_aes_ecb_patch;
-<<<<<<< HEAD
-=======
     nl_scrt_sha = nl_scrt_sha_patch;
     nl_scrt_Init = nl_scrt_init_patch;
     nl_scrt_otp_status_get = nl_scrt_otp_status_get_patch;
     scrt_res_alloc = scrt_res_alloc_patch;
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
     #ifdef SCRT_CMD_PATCH
     nl_scrt_cmd_func_init_patch();

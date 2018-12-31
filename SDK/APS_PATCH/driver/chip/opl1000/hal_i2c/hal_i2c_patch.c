@@ -32,6 +32,8 @@ Head Block of The File
 
 // Sec 1: Include File
 #include "opl1000.h"
+#include "hal_system.h"
+#include "hal_vic.h"
 #include "hal_i2c_patch.h"
 #include "cmsis_os.h"
 
@@ -57,8 +59,6 @@ Head Block of The File
 #define I2C_HS_SCL_LOW_MIN       120  /* UNIT: ns */
 #define I2C_HS_SCL_HIGH_MIN      60   /* UNIT: ns */
 
-<<<<<<< HEAD
-=======
 #define I2C_CON_SLAVE_DISABLE    (1<<6)
 #define I2C_CON_RESTART_EN       (1<<5)
 #define I2C_CON_MASTER_07BIT     (0<<4)
@@ -69,10 +69,6 @@ Head Block of The File
 #define I2C_CON_SPEED_HIGH       (3<<1)
 #define I2C_CON_SPEED_MASK       (0x3<<1)
 #define I2C_CON_MASTER_MODE      (1<<0)
-
-#define I2C_TAR_TARGET_ADDR_MASK (0x3FF)
-
-#define I2C_SAR_SLAVE_ADDR_MASK  (0x3FF)
 
 #define I2C_INT_TX_ABRT          (1<<6)
 #define I2C_INT_RD_REQ           (1<<5)
@@ -90,10 +86,13 @@ Head Block of The File
 #define I2C_STATUS_RX_NOT_EMPTY  (1<<3)
 #define I2C_STATUS_TX_EMPTY      (1<<2)
 #define I2C_STATUS_TX_NOT_FULL   (1<<1)
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
 #define I2C_ENABLE_EN            1
 #define I2C_ENABLE_STATUS_EN     1
+
+#define I2C_TIMEOUT_COUNT_MAX    (0x30000)
+
+#define I2C_FIFO_SIZE            8
 
 /********************************************
 Declaration of data structure
@@ -146,12 +145,15 @@ typedef struct
 } S_I2C_Reg_t;
 
 typedef uint32_t (*T_Hal_I2c_Eanble)(uint8_t u8Enable);
+typedef uint32_t (*T_Hal_I2c_WaitForMasterCompleted)(void);
 
 
 /********************************************
 Declaration of Global Variables & Functions
 ********************************************/
 // Sec 4: declaration of global  variable
+extern T_Hal_I2c_WaitForMasterCompleted _Hal_I2c_WaitForMasterCompleted;
+
 
 // Sec 5: declaration of global function prototype
 
@@ -209,8 +211,6 @@ uint32_t _Hal_I2c_Eanble_patch(uint8_t u8Enable)
     }
     return 0;
 }
-<<<<<<< HEAD
-=======
 
 /*************************************************************************
 * FUNCTION:
@@ -282,47 +282,6 @@ uint32_t Hal_I2c_MasterInit_patch(E_I2cAddrMode_t eAddrMode, E_I2cSpeed_t eSpeed
     // NVIC 3) Enable NVIC
     NVIC_EnableIRQ(I2C_IRQn);
     
-    return 0;
-}
-
-/*************************************************************************
-* FUNCTION:
-*  Hal_I2c_TargetAddrSet
-* 
-* DESCRIPTION:
-*   1. Setup master's target address
-* 
-* CALLS
-* 
-* PARAMETERS
-*   1. u16TargetAddr : Target address
-* 
-* RETURNS
-*   0: setting complete
-*   1: error 
-* 
-* GLOBALS AFFECTED
-* 
-*************************************************************************/
-uint32_t Hal_I2c_TargetAddrSet_patch(uint16_t u16TargetAddr)
-{
-    uint32_t u32EnStatus = 0;
-    
-    // Wait for previous action complete, generate START bit
-    if( _Hal_I2c_WaitForMasterCompleted() )
-        return 1;
-
-    // Disable before set
-    u32EnStatus = I2C->ENABLE;
-    if( u32EnStatus & I2C_ENABLE_EN )
-        _Hal_I2c_Eanble(0);
-    
-    I2C->TAR &= ~I2C_TAR_TARGET_ADDR_MASK;
-    I2C->TAR |= (u16TargetAddr & I2C_TAR_TARGET_ADDR_MASK);
-    
-    // Enable if need
-    if( u32EnStatus & I2C_ENABLE_EN )
-        _Hal_I2c_Eanble(1);
     return 0;
 }
 
@@ -637,4 +596,3 @@ uint32_t Hal_I2c_FsClockSet(uint16_t u16Hcnt, uint16_t u16Lcnt)
 
     return 0;
 }
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff

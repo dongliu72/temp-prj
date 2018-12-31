@@ -24,26 +24,21 @@
 #include "sys_common_api.h"
 #include "hal_flash.h"
 #include "at_cmd_task.h"
-<<<<<<< HEAD
-=======
 #include "at_cmd_common_patch.h"
 #include "hal_uart.h"
 #include "hal_dbg_uart.h"
 #include "wifi_types.h"
 #include "wifi_api.h"
 #include "data_flow_patch.h"
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
 //#define AT_FLASH_CHECK_BEFORE_WRITE
 //#define AT_DEBUG
 //#define AT_LOG                      msg_print_uart1
 #define AT_LOG(...)
 
-#if defined(__AT_CMD_SUPPORT__)
-
 #define AT_FLASH_READ_START         0x00000000
 #define AT_FLASH_READ_END           0x00100000
-#define AT_FLASH_WRITE_START        0x000F8000
+#define AT_FLASH_WRITE_START        0x00000000
 #define AT_FLASH_WRITE_END          0x00100000
 #define AT_FLASH_WRITE_ARGS_MAX     ((AT_RBUF_SIZE - 18 - 1) / 2) // (AT_RBUF_SIZE - length of "at+writeflash=x,yy") / 2
 #define AT_FLASH_BUF_SIZE           32
@@ -52,8 +47,6 @@ uint32_t g_u32FlashReadStart = AT_FLASH_READ_START;
 uint32_t g_u32FlashReadEnd = AT_FLASH_READ_END;
 uint32_t g_u32FlashWriteStart = AT_FLASH_WRITE_START;
 uint32_t g_u32FlashWriteEnd = AT_FLASH_WRITE_END;
-
-#endif /* __AT_CMD_SUPPORT__ */
 
 extern volatile uint8_t g_u8RfCmdRun;
 extern T_RfCmd g_tRfCmd;
@@ -525,7 +518,7 @@ int at_cmd_sys_rf_hp(char *buf, int len, int mode)
         case AT_CMD_MODE_READ:
         {
             u8 level = 0;
-            sys_get_config_rf_power_level((sys_rf_power_level_t *)&level);
+            sys_get_config_rf_power_level(&level);
             msg_print_uart1("\r\n+RFHP:%d\r\n", level);
         }
             break;
@@ -540,7 +533,7 @@ int at_cmd_sys_rf_hp(char *buf, int len, int mode)
             
             level = atoi(argv[1]);
             
-            ret = sys_set_config_rf_power_level((sys_rf_power_level_t)level);
+            ret = sys_set_config_rf_power_level(level);
             if (ret != 0) {
                 ret_st = false;
                 goto done;
@@ -607,7 +600,6 @@ ignore:
     return iRet;
 }
 
-#if defined(__AT_CMD_SUPPORT__)
 int at_cmd_sys_read_flash(char *buf, int len, int mode)
 {
     int iRet = 0;
@@ -1052,9 +1044,6 @@ done:
     
     return iRet;
 }
-<<<<<<< HEAD
-=======
-#endif /* __AT_CMD_SUPPORT__ */
 
 int at_cmd_at_switch_to_dbg(char *buf, int len, int mode)
 {
@@ -1072,21 +1061,14 @@ int at_cmd_at_switch_to_dbg(char *buf, int len, int mode)
         
     return true;
 }
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
 /**
   * @brief extern AT Command Table for All Module
   *
   */
+
 _at_command_t gAtCmdTbl_ext[] =
 {
-<<<<<<< HEAD
-    { "at+macaddrdef",          at_cmd_sys_mac_addr_def,  "Default mac address from OTP or others storage" },
-    { "at+rfhp",                at_cmd_sys_rf_hp,         "Set RF power"},
-    { "at+readflash",           at_cmd_sys_read_flash,    "Read flash" },
-    { "at+writeflash",          at_cmd_sys_write_flash,   "Write flash" },
-    { "at+eraseflash",          at_cmd_sys_erase_flash,   "Erase flash" },
-=======
 #if defined(__AT_CMD_SUPPORT__)
     { "at+macaddrdef",          at_cmd_sys_mac_addr_def,    "Default mac address from OTP or others storage" },
     { "at+dhcparpchk",          at_cmd_tcp_dhcp_arp_check,  "Enable/Disable DHCP ARP check mechanism"},
@@ -1097,15 +1079,13 @@ _at_command_t gAtCmdTbl_ext[] =
     { "at+showow",              at_cmd_sys_show_ow,       "Display overwrite table"},
     { "at+addow",               at_cmd_sys_add_ow,        "Add entry to overwrite table"},
     { "at+delow",               at_cmd_sys_del_ow,        "Delete entry from overwrite table"},
-
-    { "at+readflash",           at_cmd_sys_read_flash,    "Read flash" },
-    { "at+writeflash",          at_cmd_sys_write_flash,   "Write flash" },
-    { "at+eraseflash",          at_cmd_sys_erase_flash,   "Erase flash" },
 #endif /* __AT_CMD_SUPPORT__ */
 
     { "at+rfhp",                at_cmd_sys_rf_hp,         "Set RF power"},
     { "at+rftm",                at_cmd_sys_rf_test_mode,  "Set RF test mode"},
+    { "at+readflash",           at_cmd_sys_read_flash,    "Read flash" },
+    { "at+writeflash",          at_cmd_sys_write_flash,   "Write flash" },
+    { "at+eraseflash",          at_cmd_sys_erase_flash,   "Erase flash" },
     { "at+switchdbg",           at_cmd_at_switch_to_dbg,  "AT switch to Debug UART"},
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
     { NULL,                     NULL,                     NULL},
 };

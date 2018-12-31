@@ -11,11 +11,9 @@
 
 #ifndef __AT_CMD_TASK_PATCH_H__
 #define __AT_CMD_TASK_PATCH_H__
+#include "cmsis_os.h"
 
-<<<<<<< HEAD
-=======
 extern osSemaphoreId g_tSwitchuartSem;
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
 void at_task_func_init_patch(void);
 int at_wifi_net_task_init(void);

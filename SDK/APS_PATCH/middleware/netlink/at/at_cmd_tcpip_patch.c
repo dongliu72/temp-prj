@@ -40,6 +40,7 @@
 #include "at_cmd_tcpip_patch.h"
 #include "wpa_cli_patch.h"
 #include "sys_common_api.h"
+#include "sys_os_config_patch.h"
 
 /******************************************************
  *                      Macros
@@ -82,9 +83,8 @@
 /******************************************************
  *               Variable Definitions
  ******************************************************/
-
 extern _at_command_t *_g_AtCmdTbl_Tcpip_Ptr;
-#if defined(__AT_CMD_SUPPORT__)
+
 extern volatile at_state_type_t mdState;
 extern volatile bool at_ip_mode;
 extern volatile bool at_ipMux;
@@ -106,6 +106,8 @@ extern osThreadId   at_tx_task_id;
 extern osThreadId   at_tcp_server_task_handle;
 extern osMessageQId at_tx_task_queue_id;
 extern osPoolId     at_tx_task_pool_id;
+
+extern const osPoolDef_t os_pool_def_at_tx_task_pool;
 
 RET_DATA uint8_t g_server_mode;
 RET_DATA uint32_t g_server_port;
@@ -439,6 +441,93 @@ int at_socket_server_cleanup_task_patch(int sock)
     return 1;
 }
 
+
+/*
+ * @brief Command at+cipstamac
+ *
+ * @param [in] argc count of parameters
+ *
+ * @param [in] argv parameters array
+ *
+ * @return 0 fail 1 success
+ *
+ */
+int _at_cmd_tcpip_cipstamac_patch(char *buf, int len, int mode)
+{
+    char *argv[AT_MAX_CMD_ARGS] = {0};
+    int argc = 0;
+    uint8_t ret = AT_RESULT_CODE_ERROR;
+    uint8_t mac[6] = {0};
+    char temp[64]={0};
+    char *pstr;
+
+    switch (mode) {
+        case AT_CMD_MODE_READ:
+            wpa_cli_getmac(mac);
+            at_sprintf(temp, "%s:\""MACSTR"\"\r\n", "+CIPSTAMAC",MAC2STR(mac));
+            msg_print_uart1(temp);
+            ret = AT_RESULT_CODE_OK;
+
+            break;
+        case AT_CMD_MODE_SET:
+            if (!_at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS)) {
+                AT_LOGI("at_cmd_buf_to_argc_argv fail\r\n");
+                goto exit;
+            }
+
+            if (argc < 2) {
+                goto exit;
+            }
+
+            pstr = at_cmd_param_trim(argv[1]);
+            if (!pstr)
+            {
+                AT_LOGI("Invalid param\r\n");
+                goto exit;
+            }
+
+            if (check_mac_addr_len(pstr) == -1) {
+                AT_LOGI("Invalid mac address, wrong length of mac address \r\n");
+                goto exit;
+            }
+
+            if (hwaddr_aton2(pstr, mac) == -1) {
+                AT_LOGI("Invalid mac address \r\n");
+                goto exit;
+            }
+
+            if (is_broadcast_ether_addr(mac)) {
+                AT_LOGI("Invalid mac address, all of mac if 0xFF \r\n");
+                goto exit;
+            }
+
+            if (is_multicast_ether_addr(mac)) {
+                AT_LOGI("Invalid mac address, not allow multicast mac address \r\n");
+                goto exit;
+            }
+
+            if (is_zero_ether_addr(mac)) {
+                AT_LOGI("Invalid mac address, all of mac is zero. \r\n");
+                goto exit;
+            }
+
+            wpa_cli_setmac(mac);
+
+            mac_addr_set_config_source(MAC_IFACE_WIFI_STA, MAC_SOURCE_FROM_FLASH);
+
+            ret = AT_RESULT_CODE_OK;
+
+            break;
+        default :
+            ret = AT_RESULT_CODE_IGNORE;
+            break;
+    }
+
+exit:
+    at_response_result(ret);
+
+    return true;
+}
 
 /*
  * @brief Command at+at_cmd_tcpip_cipstatus
@@ -947,8 +1036,6 @@ exit:
     return true;
 }
 
-<<<<<<< HEAD
-=======
 void at_create_tcpip_tx_task_patch(void)
 {
     osThreadDef_t task_def;
@@ -985,96 +1072,7 @@ void at_create_tcpip_tx_task_patch(void)
         printf("at_data Tx create queue fail \r\n");
     }
 }
-#endif
 
-/*
- * @brief Command at+cipstamac
- *
- * @param [in] argc count of parameters
- *
- * @param [in] argv parameters array
- *
- * @return 0 fail 1 success
- *
- */
-int _at_cmd_tcpip_cipstamac_patch(char *buf, int len, int mode)
-{
-    char *argv[AT_MAX_CMD_ARGS] = {0};
-    int argc = 0;
-    uint8_t ret = AT_RESULT_CODE_ERROR;
-    uint8_t mac[6] = {0};
-    char temp[64]={0};
-    char *pstr;
-
-    switch (mode) {
-        case AT_CMD_MODE_READ:
-            wpa_cli_getmac(mac);
-            at_sprintf(temp, "%s:\""MACSTR"\"\r\n", "+CIPSTAMAC",MAC2STR(mac));
-            msg_print_uart1(temp);
-            ret = AT_RESULT_CODE_OK;
-
-            break;
-        case AT_CMD_MODE_SET:
-            if (!_at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS)) {
-                AT_LOGI("at_cmd_buf_to_argc_argv fail\r\n");
-                goto exit;
-            }
-
-            if (argc < 2) {
-                goto exit;
-            }
-
-            pstr = at_cmd_param_trim(argv[1]);
-            if (!pstr)
-            {
-                AT_LOGI("Invalid param\r\n");
-                goto exit;
-            }
-
-            if (check_mac_addr_len(pstr) == -1) {
-                AT_LOGI("Invalid mac address, wrong length of mac address \r\n");
-                goto exit;
-            }
-
-            if (hwaddr_aton2(pstr, mac) == -1) {
-                AT_LOGI("Invalid mac address \r\n");
-                goto exit;
-            }
-
-            if (is_broadcast_ether_addr(mac)) {
-                AT_LOGI("Invalid mac address, all of mac if 0xFF \r\n");
-                goto exit;
-            }
-
-            if (is_multicast_ether_addr(mac)) {
-                AT_LOGI("Invalid mac address, not allow multicast mac address \r\n");
-                goto exit;
-            }
-
-            if (is_zero_ether_addr(mac)) {
-                AT_LOGI("Invalid mac address, all of mac is zero. \r\n");
-                goto exit;
-            }
-
-            wpa_cli_setmac(mac);
-
-            mac_addr_set_config_source(MAC_IFACE_WIFI_STA, MAC_SOURCE_FROM_FLASH);
-
-            ret = AT_RESULT_CODE_OK;
-
-            break;
-        default :
-            ret = AT_RESULT_CODE_IGNORE;
-            break;
-    }
-
-exit:
-    at_response_result(ret);
-
-    return true;
-}
-
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 /*-------------------------------------------------------------------------------------
  * Definitions of interface function pointer
  *------------------------------------------------------------------------------------*/
@@ -1084,10 +1082,9 @@ exit:
  * Interface assignment
  *------------------------------------------------------------------------------------*/
 
-
+#if defined(__AT_CMD_SUPPORT__)
 void _at_cmd_tcpip_func_init_patch(void)
 {
-    #if defined(__AT_CMD_SUPPORT__)
     g_server_mode = 0;
     g_server_port = 0;
     
@@ -1098,17 +1095,14 @@ void _at_cmd_tcpip_func_init_patch(void)
     at_socket_server_listen_task        = at_socket_server_listen_task_patch;
     at_socket_server_create_task        = at_socket_server_create_task_patch;
     at_socket_server_cleanup_task       = at_socket_server_cleanup_task_patch;
+    at_create_tcpip_tx_task             = at_create_tcpip_tx_task_patch;
 
     /** Command Table (TCP/IP) */
     _g_AtCmdTbl_Tcpip_Ptr[0].cmd_handle  = _at_cmd_tcpip_cipstatus_patch;
     _g_AtCmdTbl_Tcpip_Ptr[2].cmd_handle  = _at_cmd_tcpip_cipstart_patch;
     _g_AtCmdTbl_Tcpip_Ptr[5].cmd_handle  = _at_cmd_tcpip_cipclose_patch;
     _g_AtCmdTbl_Tcpip_Ptr[8].cmd_handle  = _at_cmd_tcpip_cipserver_patch;
-    #endif
     _g_AtCmdTbl_Tcpip_Ptr[16].cmd_handle = _at_cmd_tcpip_cipstamac_patch;
 }
-<<<<<<< HEAD
-=======
+#endif
 
-
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff

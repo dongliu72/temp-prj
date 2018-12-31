@@ -70,10 +70,6 @@ extern "C" {
 */
 #define WIFI_MAX_SUPPORTED_RATES            (8)
 
-/**@brief maximum number of WIFI channels
-*/
-#define WIFI_MAC_NUM_OF_CHANNELS             (14)
-
 /******************************************************
  *                   Enumerations
  ******************************************************/
@@ -323,8 +319,8 @@ typedef struct {
  * @brief WiFi auto connect mode parameters
  */
 typedef enum {
-    WIFI_AUTO_CONNECT_DISABLE,
     WIFI_AUTO_CONNECT_ENABLE,
+    WIFI_AUTO_CONNECT_DISABLE,
 } wifi_auto_connet_mode_e;
 
 /**

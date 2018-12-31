@@ -39,16 +39,14 @@ Head Block of The File
 #include <string.h>
 #include "sys_init.h"
 #include "sys_init_patch.h"
+#include "hal_system.h"
 #include "mw_fim.h"
 #include "cmsis_os.h"
 #include "sys_os_config.h"
-<<<<<<< HEAD
-=======
 #include "at_cmd_common_patch.h"
 #include "hal_pin.h"
 #include "hal_pin_def.h"
 #include "hal_pin_config_project.h"
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
@@ -89,6 +87,7 @@ static osPoolId g_tAppMemPoolId;
 // Sec 7: declaration of static function prototype
 static void __Patch_EntryPoint(void) __attribute__((section(".ARM.__at_0x00420000")));
 static void __Patch_EntryPoint(void) __attribute__((used));
+static void Main_PinMuxUpdate(void);
 static void Main_FlashLayoutUpdate(void);
 static void Main_AppInit_patch(void);
 static void Main_AppThread_1(void *argu);
@@ -120,6 +119,9 @@ static void __Patch_EntryPoint(void)
     // don't remove this code
     SysInit_EntryPoint();
     
+    // update the pin mux
+    Hal_SysPinMuxAppInit = Main_PinMuxUpdate;
+    
     // update the flash layout
     MwFim_FlashLayoutUpdate = Main_FlashLayoutUpdate;
     
@@ -129,8 +131,6 @@ static void __Patch_EntryPoint(void)
 
 /*************************************************************************
 * FUNCTION:
-<<<<<<< HEAD
-=======
 *   Main_PinMuxUpdate
 *
 * DESCRIPTION:
@@ -175,7 +175,6 @@ static void Main_PinMuxUpdate(void)
 
 /*************************************************************************
 * FUNCTION:
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 *   Main_FlashLayoutUpdate
 *
 * DESCRIPTION:

@@ -49,11 +49,14 @@ void at_func_init_patch(void)
     /** AT Cmd RF */
     _at_cmd_rf_func_init_patch();
 
+    
+    #if defined(__AT_CMD_SUPPORT__)
     /** AT Msg Extend */
     at_msg_ext_init_patch();
-
+    
     at_cmd_app_func_preinit_patch();
-
+    #endif
+    
     at_task_func_init_patch();
     
     /** Extend Table register */

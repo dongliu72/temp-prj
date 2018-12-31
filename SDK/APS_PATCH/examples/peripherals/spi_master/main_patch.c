@@ -53,11 +53,15 @@ Head Block of The File
 #include <string.h>
 #include "sys_init.h"
 #include "sys_init_patch.h"
+#include "hal_system.h"
 #include "mw_fim.h"
 #include "cmsis_os.h"
 #include "sys_os_config.h"
 #include "Hal_pinmux_spi.h"
 #include "hal_flash_patch.h"
+#include "hal_pin.h"
+#include "hal_pin_def.h"
+#include "hal_pin_config_project.h"
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
 #define DUMMY          0x00
@@ -92,19 +96,17 @@ extern T_Main_AppInit_fp Main_AppInit;
 Declaration of static Global Variables & Functions
 ***************************************************/
 // Sec 6: declaration of static global variable
-static osThreadId g_tAppThread1,g_tAppThread2;
+static osThreadId g_tAppThread;
 
 // Sec 7: declaration of static function prototype
 static void __Patch_EntryPoint(void) __attribute__((section(".ARM.__at_0x00420000")));
 static void __Patch_EntryPoint(void) __attribute__((used));
+static void Main_PinMuxUpdate(void);
 static void Main_FlashLayoutUpdate(void);
 void Main_AppInit_patch(void);
 static void spi_flash_test(void);
 static void spi_send_data(int port);
-static void spi_recv_data(int port);
-static void spi_send_block_data(int port);
-static void Main_AppThread1(void *argu);
-static void Main_AppThread2(void *argu);
+static void Main_AppThread(void *argu);
 static void spi_test(void);
 
 /***********
@@ -131,11 +133,57 @@ static void __Patch_EntryPoint(void)
     // don't remove this code
     SysInit_EntryPoint();
     
+    // update the pin mux
+    Hal_SysPinMuxAppInit = Main_PinMuxUpdate;
+    
     // update the flash layout
     MwFim_FlashLayoutUpdate = Main_FlashLayoutUpdate;
     
     // application init
     Sys_AppInit = Main_AppInit_patch;
+}
+
+
+/*************************************************************************
+* FUNCTION:
+*   Main_PinMuxUpdate
+*
+* DESCRIPTION:
+*   update the pin-mux setting
+*
+* PARAMETERS
+*   none
+*
+* RETURNS
+*   none
+*
+*************************************************************************/
+static void Main_PinMuxUpdate(void)
+{
+    Hal_Pin_ConfigSet(0, HAL_PIN_TYPE_IO_0, HAL_PIN_DRIVING_IO_0);
+    Hal_Pin_ConfigSet(1, HAL_PIN_TYPE_IO_1, HAL_PIN_DRIVING_IO_1);
+    Hal_Pin_ConfigSet(2, HAL_PIN_TYPE_IO_2, HAL_PIN_DRIVING_IO_2);
+    Hal_Pin_ConfigSet(3, HAL_PIN_TYPE_IO_3, HAL_PIN_DRIVING_IO_3);
+    Hal_Pin_ConfigSet(4, HAL_PIN_TYPE_IO_4, HAL_PIN_DRIVING_IO_4);
+    Hal_Pin_ConfigSet(5, HAL_PIN_TYPE_IO_5, HAL_PIN_DRIVING_IO_5);
+    Hal_Pin_ConfigSet(6, HAL_PIN_TYPE_IO_6, HAL_PIN_DRIVING_IO_6);
+    Hal_Pin_ConfigSet(7, HAL_PIN_TYPE_IO_7, HAL_PIN_DRIVING_IO_7);
+    Hal_Pin_ConfigSet(8, HAL_PIN_TYPE_IO_8, HAL_PIN_DRIVING_IO_8);
+    Hal_Pin_ConfigSet(9, HAL_PIN_TYPE_IO_9, HAL_PIN_DRIVING_IO_9);
+    Hal_Pin_ConfigSet(10, HAL_PIN_TYPE_IO_10, HAL_PIN_DRIVING_IO_10);
+    Hal_Pin_ConfigSet(11, HAL_PIN_TYPE_IO_11, HAL_PIN_DRIVING_IO_11);
+    Hal_Pin_ConfigSet(12, HAL_PIN_TYPE_IO_12, HAL_PIN_DRIVING_IO_12);
+    Hal_Pin_ConfigSet(13, HAL_PIN_TYPE_IO_13, HAL_PIN_DRIVING_IO_13);
+    Hal_Pin_ConfigSet(14, HAL_PIN_TYPE_IO_14, HAL_PIN_DRIVING_IO_14);
+    Hal_Pin_ConfigSet(15, HAL_PIN_TYPE_IO_15, HAL_PIN_DRIVING_IO_15);
+    Hal_Pin_ConfigSet(16, HAL_PIN_TYPE_IO_16, HAL_PIN_DRIVING_IO_16);
+    Hal_Pin_ConfigSet(17, HAL_PIN_TYPE_IO_17, HAL_PIN_DRIVING_IO_17);
+    Hal_Pin_ConfigSet(18, HAL_PIN_TYPE_IO_18, HAL_PIN_DRIVING_IO_18);
+    Hal_Pin_ConfigSet(19, HAL_PIN_TYPE_IO_19, HAL_PIN_DRIVING_IO_19);
+    Hal_Pin_ConfigSet(20, HAL_PIN_TYPE_IO_20, HAL_PIN_DRIVING_IO_20);
+    Hal_Pin_ConfigSet(21, HAL_PIN_TYPE_IO_21, HAL_PIN_DRIVING_IO_21);
+    Hal_Pin_ConfigSet(22, HAL_PIN_TYPE_IO_22, HAL_PIN_DRIVING_IO_22);
+    Hal_Pin_ConfigSet(23, HAL_PIN_TYPE_IO_23, HAL_PIN_DRIVING_IO_23);
 }
 
 /*************************************************************************
@@ -207,10 +255,10 @@ void Main_AppInit_patch(void)
 
 /*************************************************************************
 * FUNCTION:
-*   Main_AppThread1
+*   Main_AppThread
 *
 * DESCRIPTION:
-*   App thread 1 for SPI write opertion 
+*   the application thread 2
 *
 * PARAMETERS
 *   1. argu     : [In] the input argument
@@ -219,41 +267,14 @@ void Main_AppInit_patch(void)
 *   none
 *
 *************************************************************************/
-static void Main_AppThread1(void *argu)
+static void Main_AppThread(void *argu)
 {	
     while (1)
     {	
-        osDelay(500);      // delay 500 ms		
-        printf("[Thread1] SPI Running \r\n");			
+        osDelay(1500);      // delay 1500 ms		
+        printf("SPI Running \r\n");			
 				// communicate with external SPI slave device 
-				spi_send_data(TEST_SPI);
-        osDelay(500);      // delay 500 ms				
-			  spi_send_block_data(TEST_SPI);
-    }
-}
-
-/*************************************************************************
-* FUNCTION:
-*   Main_AppThread2
-*
-* DESCRIPTION:
-*   App thread 2 for SPI read opertion 
-*
-* PARAMETERS
-*   1. argu     : [In] the input argument
-*
-* RETURNS
-*   none
-*
-*************************************************************************/
-static void Main_AppThread2(void *argu)
-{	
-    while (1)
-    {	
-        osDelay(500);      // delay 500 ms		
-        printf("[Thread2] SPI Running \r\n");			
-				// communicate with external SPI slave device 
-        spi_recv_data(TEST_SPI);
+				spi_send_data(TEST_SPI); 			
     }
 }
 
@@ -316,7 +337,7 @@ static void spi_flash_test(void)
 *   spi_send_data
 *
 * DESCRIPTION:
-*   An example of write data to external SPI slave device.
+*   an example of write data to external SPI slave device.
 *
 * PARAMETERS
 *   none
@@ -346,88 +367,6 @@ static void spi_send_data(int port)
     }    
 }
 
-
-/*************************************************************************
-* FUNCTION:
-*   spi_recv_data
-*
-* DESCRIPTION:
-*   An example of read data from external SPI slave device.
-*   String from SPI slave device is ended by '\n'   
-*
-* PARAMETERS
-*   none
-*
-* RETURNS
-*   none
-*
-*************************************************************************/
-static void spi_recv_data(int port)
-{
-    // Assume maximum string length not exceeds 32 bytes.
-    char input_str[32]= {0};    
-    uint32_t u32Temp, i, spi_idx = 0;
-    T_OPL1000_Spi *spi;
-		
-    spi = &OPL1000_periph.spi[port];
-		if (spi->index == SPI_IDX_1)
-			  spi_idx = 1; // indicate it is SPI1 
-	  else if (spi->index == SPI_IDX_2)
-			  spi_idx = 2; // indicate it is SPI2 
-        
-    for(i=0;i<strlen(input_str);i++)
-    {
-        u32Temp = TAG_DFS_08 | TAG_CS_COMP | TAG_1_BIT | TAG_READ | DUMMY; // complete
-        Hal_Spi_Data_Send(spi->index, u32Temp);
-			
-			  Hal_Spi_Data_Recv(spi->index, &u32Temp);
-			  if (u32Temp == 0x13 || u32Temp == 0x0A)  // received character is '\n' or '\r'
-				   break; 
-				input_str[i] = u32Temp & 0xFF; 
-    } 
-    printf("Receive from SPI%d slave device: %s \r\n",spi_idx,input_str);		
-}
-
-/*************************************************************************
-* FUNCTION:
-*   spi_send_block_data
-*
-* DESCRIPTION:
-*   An example of write block (multiple bytes) to external SPI slave device.
-*
-* PARAMETERS
-*   none
-*
-* RETURNS
-*   none
-*
-*************************************************************************/
-static void spi_send_block_data(int port)
-{
-    char output_str[10]= {0x11,0x22,0x33,0x44,0x55,0x66,0x77,0x88,0x99,0xaa};   
-    uint32_t u32Temp, u32Idx, u32DataSize, spi_idx = 0;
-    T_OPL1000_Spi *spi;
-		
-    spi = &OPL1000_periph.spi[port];
-		if (spi->index == SPI_IDX_1)
-			  spi_idx = 1; // indicate it is SPI1 
-	  else if (spi->index == SPI_IDX_2)
-			  spi_idx = 2; // indicate it is SPI2 
-
-    printf("Send multiple bytes to external SPI%d slave device \r\n",spi_idx);    
-
-		u32DataSize = strlen(output_str);
-		for (u32Idx=0; u32Idx<u32DataSize; u32Idx++)
-		{
-				if (u32Idx != (u32DataSize-1))
-						u32Temp = TAG_DFS_08 | TAG_CS_CONT | TAG_1_BIT | TAG_WRITE | output_str[u32Idx];
-				else
-						u32Temp = TAG_DFS_08 | TAG_CS_COMP | TAG_1_BIT | TAG_WRITE | output_str[u32Idx]; // complete
-				Hal_Spi_Data_Send(spi->index, u32Temp);				
-				//Hal_Spi_Data_Recv(spi->index, &u32Temp); // dummy
-		}		
-}
-
 /*************************************************************************
 * FUNCTION:
 *   SPI test 
@@ -446,29 +385,16 @@ static void spi_test(void)
 {
     osThreadDef_t tThreadDef;
     
-    // create thread for SPI write operation 
-    tThreadDef.name = "App_1";
-    tThreadDef.pthread = Main_AppThread1;
+    // create the thread for AppThread
+    tThreadDef.name = "App";
+    tThreadDef.pthread = Main_AppThread;
     tThreadDef.tpriority = OS_TASK_PRIORITY_APP;        // osPriorityNormal
     tThreadDef.instances = 0;                           // reserved, it is no used
     tThreadDef.stacksize = OS_TASK_STACK_SIZE_APP;      // (512), unit: 4-byte, the size is 512*4 bytes
-    g_tAppThread1 = osThreadCreate(&tThreadDef, NULL);
-    if (g_tAppThread1 == NULL)
+    g_tAppThread = osThreadCreate(&tThreadDef, NULL);
+    if (g_tAppThread == NULL)
     {
-        printf("Create SPI write thread is fail.\n");
+        printf("To create the thread for AppThread is fail.\n");
     }	
-
-		// create thread for SPI read operation
-    tThreadDef.name = "App_2";
-    tThreadDef.pthread = Main_AppThread2;
-    tThreadDef.tpriority = OS_TASK_PRIORITY_APP;        // osPriorityNormal
-    tThreadDef.instances = 0;                           // reserved, it is no used
-    tThreadDef.stacksize = OS_TASK_STACK_SIZE_APP;      // (512), unit: 4-byte, the size is 512*4 bytes
-    g_tAppThread2 = osThreadCreate(&tThreadDef, NULL);
-    if (g_tAppThread2 == NULL)
-    {
-        printf("Create SPI read thread is fail.\n");
-    }
-	
 }
 

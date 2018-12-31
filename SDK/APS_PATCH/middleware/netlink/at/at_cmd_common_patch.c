@@ -30,15 +30,12 @@
 #include "at_cmd_common.h"
 #include "hal_dbg_uart.h"
 #include "hal_uart.h"
-<<<<<<< HEAD
-=======
 #include "hal_pin.h"
 #include "hal_pin_def.h"
 #include "at_cmd_task_patch.h"
 #include "at_cmd_common_patch.h"
 #include "hal_pin_config_patch.h"
 
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 #if defined(__AT_CMD_TASK__)
 #include "at_cmd_task.h"
 #endif
@@ -137,11 +134,15 @@ void _uart1_rx_int_do_at_patch(uint32_t u32Data)
     //command input for all modules
     if (lock == LOCK_NONE)
     {
-        if ((p->in & ~(AT_RBUF_SIZE-1)) == 0)
+        if( p->in < (AT_RBUF_SIZE-1) ) // one reserved for '\0'
         {
-            if((u32Data & 0xFF) == 0x0D)//Enter
-            {//detect the ending character, send command buffer to at cmd task
-                p->buf [p->in & (AT_RBUF_SIZE-1)] = 0x00;
+            uint8_t u8Buff = 0;
+            u8Buff = u32Data & 0xFF;
+
+            if( (u8Buff == 0x0A) || (u8Buff == 0x0D) )
+            {
+                // 0x0A:LF, 0x0D:CR. "ENTER" key. Windows:CR+LF, Linux:CR and Mac:LF
+                p->buf[ p->in ] = 0x00;
 
                 /** send message */
                 txMsg.pcMessage = (char *)p;
@@ -150,31 +151,30 @@ void _uart1_rx_int_do_at_patch(uint32_t u32Data)
 
                 /** Post the byte. */
                 at_task_send( txMsg );
+                at_clear_uart_buffer();
             }
-            else if((u32Data & 0xFF) == 0x08)
-            {//backspace
+            else if(u8Buff == 0x08)
+            {
+                // back space
                 if (p->in > 0)
                 {
                     p->in--;
-                    p->buf[p->in & (AT_RBUF_SIZE-1)] = 0x00;
+                    p->buf[ p->in ] = 0x00;
                     Hal_Uart_DataSend(UART_IDX_1, 0x08);
                     Hal_Uart_DataSend(UART_IDX_1, 0x20);
                     Hal_Uart_DataSend(UART_IDX_1, 0x08);
                 }
             }
             else
-            {//each character input
-                p->buf [p->in & (AT_RBUF_SIZE-1)] = (u32Data & 0xFF);
-                if(at_echo_on) Hal_Uart_DataSend(UART_IDX_1, p->buf [p->in]);
+            {
+                // Others 
+                p->buf[ p->in ] = u8Buff;
+                if(at_echo_on) 
+                    Hal_Uart_DataSend(UART_IDX_1, p->buf[p->in]);
                 p->in++;
             }
         }
-        else
-        { //error case: overwrite
-            p->in = 0;
-            p->buf [p->in & (AT_RBUF_SIZE-1)] = (u32Data & 0xFF);
-            Hal_Uart_DataSend(UART_IDX_1, p->buf [p->in]);
-        }
+        // if overflow, no action.
     }
 
     //data input for BLE or TCP/IP module
@@ -197,8 +197,6 @@ void _uart1_rx_int_do_at_patch(uint32_t u32Data)
     }
 }
 
-<<<<<<< HEAD
-=======
 void at_cmd_switch_uart1_dbguart(void)
 {
     osSemaphoreWait(g_tSwitchuartSem, osWaitForever);
@@ -222,7 +220,6 @@ void at_cmd_switch_uart1_dbguart(void)
     g_eIO01UartMode = (E_IO01_UART_MODE)!g_eIO01UartMode;
     osSemaphoreRelease(g_tSwitchuartSem);    
 }
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
 void at_io01_uart_mode_set(E_IO01_UART_MODE eMode)
 {
@@ -237,12 +234,8 @@ void at_io01_uart_mode_set(E_IO01_UART_MODE eMode)
 void at_cmd_common_func_init_patch(void)
 {
 	memset(&at_rx_buf, 0, sizeof(at_uart_buffer_t));
-<<<<<<< HEAD
-    
-=======
     at_io01_uart_mode_set(HAL_PIN_0_1_UART_MODE_PATCH);
 
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
     uart1_rx_int_do_at = _uart1_rx_int_do_at_patch;
     _uart1_rx_int_at_data_receive_tcpip = _uart1_rx_int_at_data_receive_tcpip_patch;
 }

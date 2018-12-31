@@ -10,6 +10,7 @@
 ******************************************************************************/
 
 #include "lwip/opt.h"
+#include "sys_os_config_patch.h"
 
 /* user api related */
 extern void lwip_load_interface_socket_patch(void);
@@ -24,6 +25,7 @@ extern void lwip_load_interface_tcpip_patch(void);
 extern void lwip_load_interface_timeouts_patch(void);
 /* network interface */
 
+/* network config */
 extern void lwip_load_interface_network_config_patch(void);
 
 /* porting layer */
@@ -32,7 +34,10 @@ extern void lwip_load_interface_sys_arch_freertos_patch(void);
 
 /* application && cli */
 extern void lwip_load_interface_lwip_helper_patch(void);
+extern void lwip_load_interface_cli_patch(void);
 
+/* tcpip if */
+extern void lwip_load_interface_tcpip_if_patch(void);
 
 void lwip_module_interface_init_patch(void)
 {
@@ -41,14 +46,11 @@ void lwip_module_interface_init_patch(void)
     lwip_load_interface_socket_patch();
     lwip_load_interface_wlannetif_patch();
     lwip_load_interface_network_config_patch();
-<<<<<<< HEAD
-=======
     lwip_load_interface_lwip_helper_patch();
     lwip_load_interface_cli_patch();
     lwip_load_interface_tcpip_if_patch();
     lwip_load_interface_dhcp_patch();
     lwip_load_interface_sys_arch_freertos_patch();
     
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
     return;
 }

@@ -53,14 +53,8 @@ Head Block of The File
 #include "hal_auxadc_patch.h"
 #include "hal_i2c_patch.h"
 #include "hal_pwm_patch.h"
-<<<<<<< HEAD
-=======
 #include "hal_vic_patch.h"
 #include "hal_pin.h"
-#include <string.h>
-#include "mw_fim_default_group03.h"
-#include "mw_fim_default_group03_patch.h"
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
@@ -114,15 +108,16 @@ C Functions
 void peripheral_patch_init(void)
 {
     // vic and GPIO
+    Hal_Vic_Func_Patch();
 
     // system (AOS+sys_reg)
-    Hal_Sys_SleepInit       = Hal_Sys_SleepInit_patch;
-    Hal_Sys_ApsClkTreeSetup = Hal_Sys_ApsClkTreeSetup_patch;
-    Hal_Sys_MsqClkTreeSetup = Hal_Sys_MsqClkTreeSetup_patch;
+    Hal_Sys_SleepInit         = Hal_Sys_SleepInit_patch;
+    Hal_Sys_ApsClkTreeSetup   = Hal_Sys_ApsClkTreeSetup_patch;
+    Hal_Sys_MsqClkTreeSetup   = Hal_Sys_MsqClkTreeSetup_patch;
     Hal_Sys_ApsClkChangeApply = Hal_Sys_ApsClkChangeApply_patch;
     Hal_SysPinMuxAppInit      = Hal_SysPinMuxAppInit_patch;
     Hal_SysPinMuxDownloadInit = Hal_SysPinMuxDownloadInit_patch;
-    Hal_SysPinMuxM3UartInit   = Hal_SysPinMuxM3UartInit_impl;
+    Hal_SysPinMuxSpiFlashInit = Hal_SysPinMuxSpiFlashInit_patch;
     Hal_SysPinMuxM3UartSwitch = Hal_SysPinMuxM3UartSwitch_impl;
     Hal_Sys_DisableClock      = Hal_Sys_DisableClock_impl;
     // dbg_uart
@@ -136,16 +131,10 @@ void peripheral_patch_init(void)
     Hal_Flash_AddrRead_Internal    = Hal_Flash_AddrRead_Internal_patch;
 
     // i2c
-<<<<<<< HEAD
-    _Hal_I2c_Eanble = _Hal_I2c_Eanble_patch;
-=======
     _Hal_I2c_Eanble       = _Hal_I2c_Eanble_patch;
     Hal_I2c_MasterInit    = Hal_I2c_MasterInit_patch;
-    Hal_I2c_TargetAddrSet = Hal_I2c_TargetAddrSet_patch;
-    Hal_I2c_MasterTrasmit = Hal_I2c_MasterTrasmit_patch;
     Hal_I2c_MasterReceive = Hal_I2c_MasterReceive_patch;
     Hal_I2c_SpeedSet      = Hal_I2c_SpeedSet_patch;
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
     // tmr
 
@@ -158,17 +147,8 @@ void peripheral_patch_init(void)
     
     // auxadc
     g_ulHalAux_AverageCount = HAL_AUX_AVERAGE_COUNT;
-    memcpy(&g_tHalAux_CalData_patch, &g_tMwFimDefaultCalAuxadc_patch, MW_FIM_CAL_AUXADC_SIZE);
-    Hal_Aux_Init = Hal_Aux_Init_patch;
     Hal_Aux_AdcValueGet = Hal_Aux_AdcValueGet_patch;
-<<<<<<< HEAD
-=======
-    Hal_Aux_VbatGet = Hal_Aux_VbatGet_patch;
-    Hal_Aux_IoVoltageGet = Hal_Aux_IoVoltageGet_patch;
-    Hal_Aux_VbatCalibration = Hal_Aux_VbatCalibration_impl;
-    Hal_Aux_IoVoltageCalibration = Hal_Aux_IoVoltageCalibration_impl;
 
     // pin-mux
     Hal_Pin_PreInitCold();
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 }

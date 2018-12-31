@@ -33,11 +33,8 @@
 
 
 void at_cmd_common_func_init_patch(void);
-<<<<<<< HEAD
-=======
 void at_cmd_switch_uart1_dbguart(void);
 void at_io01_uart_mode_set(E_IO01_UART_MODE eMode);
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
 
 #endif /* __AT_CMD_COMMOM_PATCH_H__ */

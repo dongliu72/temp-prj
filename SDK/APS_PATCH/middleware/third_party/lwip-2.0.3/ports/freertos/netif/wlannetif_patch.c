@@ -142,8 +142,6 @@ low_level_init_patch(struct netif *netif)
     /* Do whatever else is needed to initialize interface. */
 }
 
-<<<<<<< HEAD
-=======
 /**
  * This function should do the actual transmission of the packet. The packet is
  * contained in the pbuf that is passed to the function. This pbuf
@@ -159,27 +157,20 @@ low_level_init_patch(struct netif *netif)
  *       to become availale since the stack doesn't retry to send a packet
  *       dropped because of memory failure (except for the TCP timers).
  */
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
+
 static err_t
 low_level_output_patch(struct netif *netif, struct pbuf *p)
 {
     struct ethernetif *ethernetif = netif->state;
     struct pbuf *q;
-<<<<<<< HEAD
     static int full_count = 0;
     static int write_count = 0;
-    u16_t len = 0;
-=======
-    int full_count = 0;
-    
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
+
     LWIP_UNUSED_ARG(ethernetif);
+
 #if ETH_PAD_SIZE
     pbuf_header(p, -ETH_PAD_SIZE); /* drop the padding word */
 #endif
-<<<<<<< HEAD
-    for(q = p; q != NULL; q = q->next) {
-=======
     
     q = p;
         
@@ -187,17 +178,12 @@ low_level_output_patch(struct netif *netif, struct pbuf *p)
         #ifdef TX_PKT_DUMP
             dump_buffer(q->payload, q->len, 1);
         #endif
-        
-        while (TX_QUEUE_FULL == wifi_mac_tx_start(q->payload, q->len)) {
-            
-            sys_msleep(1);
-            
-            if (full_count == 50) {
-                //printf("__packet_tx_task: retry times reach full count. \n");
-                break;
-            }
-            
+    
+        if ( TX_QUEUE_FULL == wifi_mac_tx_start(q->payload, q->len) ) {
             full_count++;
+            printf("__packet_tx_task: Tx WriteCount: %d  FullCount:%d\r\n", write_count, full_count);
+            sys_arch_sem_wait(&TxReadySem, 1);
+            printf("__packet_tx_task: recevie Tx ready event to wakeup\r\n");
         }
     }
     else {
@@ -211,50 +197,29 @@ low_level_output_patch(struct netif *netif, struct pbuf *p)
             return ERR_OK;
         }
 
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
         #ifdef TX_PKT_DUMP
             dump_buffer(q->payload, q->len, 1);
         #endif
-<<<<<<< HEAD
-        if ( TX_QUEUE_FULL == wifi_mac_tx_start(q->payload, q->len) )
-        {
+        
+        if ( TX_QUEUE_FULL == wifi_mac_tx_start(q->payload, q->len) ) {
             full_count++;
             printf("__packet_tx_task: Tx WriteCount: %d  FullCount:%d\r\n", write_count, full_count);
             sys_arch_sem_wait(&TxReadySem, 1);
             printf("__packet_tx_task: recevie Tx ready event to wakeup\r\n");
         }
-        else
-        {
-            full_count = 0;
-            write_count++;
-=======
-
-        while (TX_QUEUE_FULL == wifi_mac_tx_start(q->payload, q->len)) {
-            
-            sys_msleep(1);
-            
-            if (full_count == 50) {
-                //printf("__packet_tx_task: retry times reach full count. \n");
-                break;
-            }
-            
-            full_count++;
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
-        }
-
+        
         pbuf_free(q);
     }
+
 #if ETH_PAD_SIZE
     pbuf_header(p, ETH_PAD_SIZE); /* reclaim the padding word */
 #endif
+
     LINK_STATS_INC(link.xmit);
-<<<<<<< HEAD
-  return ERR_OK;
-=======
 
     return ERR_OK;
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 }
+
 void lwip_load_interface_wlannetif_patch(void)
 {
     low_level_init_adpt  = low_level_init_patch;

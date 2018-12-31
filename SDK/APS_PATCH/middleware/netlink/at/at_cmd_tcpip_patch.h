@@ -12,10 +12,8 @@
 #ifndef _AT_CMD_TCPIP_PATCH_H_
 #define _AT_CMD_TCPIP_PATCH_H_
 
-<<<<<<< HEAD
-=======
-
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
+#if defined(__AT_CMD_SUPPORT__)
 void _at_cmd_tcpip_func_init_patch(void);
+#endif
 
 #endif /* _AT_CMD_TCPIP_PATCH_H_ */

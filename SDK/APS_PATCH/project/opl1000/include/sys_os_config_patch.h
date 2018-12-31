@@ -31,10 +31,6 @@ extern "C" {
 #define OS_TASK_PRIORITY_AGENT          osPriorityLow
 
 // Task - Stack Size, the count of 4 bytes
-<<<<<<< HEAD
-#define OS_TASK_STACK_SIZE_TRACER_PATCH (128)
-#define OS_TASK_STACK_SIZE_AGENT        (128)
-=======
 #define OS_TASK_STACK_SIZE_REFINED
 
 #ifdef OS_TASK_STACK_SIZE_REFINED
@@ -84,11 +80,14 @@ extern "C" {
     #define OS_TASK_STACK_SIZE_SENSOR_DATA          (1024)
 
 #endif //#ifdef OS_TASK_STACK_SIZE_REFINED
->>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
 
 // Task - Name (max length is 15 bytes (not including '\0'))
 #define OS_TASK_NAME_AGENT              "opl_agent"
+
+
+// Enable "tid" command to dump task information
+//#define OS_TASK_INFO_DUMP
 
 
 /******************************
