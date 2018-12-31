@@ -34,9 +34,8 @@ void _at_cmd_func_init_patch(void)
 
 #if defined(__AT_CMD_SUPPORT__)
     _at_cmd_wifi_func_init_patch();
-#endif
     _at_cmd_tcpip_func_init_patch();
-
+#endif
     /** Functions */
     _at_cmd_handler = _at_cmd_handler_patch;
 }

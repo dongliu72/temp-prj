@@ -22,8 +22,6 @@ extern "C" {
 void BleWifi_Ble_Init(void);
 void BleWifi_Ble_StartAdvertising(void);
 void BleWifi_Ble_StopAdvertising(void);
-void BleWifi_Ble_MacAddrWrite(uint8_t *data, int len);
-void BleWifi_Ble_MacAddrRead(uint8_t *data, int len);
 
 
 #ifdef __cplusplus

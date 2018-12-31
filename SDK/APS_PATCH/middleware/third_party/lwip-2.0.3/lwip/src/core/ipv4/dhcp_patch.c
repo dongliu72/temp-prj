@@ -92,9 +92,6 @@
 extern dhcp_set_state_fp_t dhcp_set_state_adpt;
 extern dhcp_option_long_fp_t dhcp_option_long_adpt;
 extern struct udp_pcb *dhcp_pcb;
-uint8_t dhcp_retry_mode=1;
-int lwip_dhcp_autoip_coop_tries=9;
-int dhcp_retry_interval=250;
 
 static u8_t dhcp_discover_request_options_patch[] = {
     DHCP_OPTION_SUBNET_MASK,
@@ -162,17 +159,12 @@ dhcp_discover_patch(struct netif *netif)
     dhcp->tries++;
   }
 #if LWIP_DHCP_AUTOIP_COOP
-  if (dhcp->tries >= lwip_dhcp_autoip_coop_tries && dhcp->autoip_coop_state == DHCP_AUTOIP_COOP_STATE_OFF) {
+  if (dhcp->tries >= LWIP_DHCP_AUTOIP_COOP_TRIES && dhcp->autoip_coop_state == DHCP_AUTOIP_COOP_STATE_OFF) {
     dhcp->autoip_coop_state = DHCP_AUTOIP_COOP_STATE_ON;
     autoip_start(netif);
   }
 #endif /* LWIP_DHCP_AUTOIP_COOP */
-  if(dhcp_retry_mode==0){
-     msecs = dhcp_retry_interval;
-  }
-  else{
-     msecs = (dhcp->tries < 6 ? 1 << dhcp->tries : 60) * dhcp_retry_interval;
-  }
+  msecs = (dhcp->tries < 6 ? 1 << dhcp->tries : 60) * 1000;
   dhcp->request_timeout = (msecs + DHCP_FINE_TIMER_MSECS - 1) / DHCP_FINE_TIMER_MSECS;
   LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_TRACE | LWIP_DBG_STATE, ("dhcp_discover(): set request timeout %"U16_F" msecs\n", msecs));
   return result;
@@ -232,12 +224,7 @@ dhcp_select_patch(struct netif *netif)
   if (dhcp->tries < 255) {
     dhcp->tries++;
   }
-  if(dhcp_retry_mode==0){
-    msecs = dhcp_retry_interval;
-  }
-  else{
-    msecs = (dhcp->tries < 6 ? 1 << dhcp->tries : 60) * dhcp_retry_interval; 
-  }
+  msecs = (dhcp->tries < 6 ? 1 << dhcp->tries : 60) * 1000;
   dhcp->request_timeout = (msecs + DHCP_FINE_TIMER_MSECS - 1) / DHCP_FINE_TIMER_MSECS;
   LWIP_DEBUGF(DHCP_DEBUG | LWIP_DBG_STATE, ("dhcp_select(): set request timeout %"U16_F" msecs\n", msecs));
   return result;

@@ -98,7 +98,6 @@ extern const struct lwip_cyclic_timer lwip_cyclic_timers[];
 extern struct sys_timeo *next_timeout;
 
 static u32_t current_timeout_due_time = 0;
-int wakeup_event_timeouts = 1000;
 
 #define OPL_SMART_SLEEP         1
 #define USE_LWIP_NEW_TIMER      1
@@ -379,15 +378,7 @@ again:
 #if OPL_SMART_SLEEP
   if (ps_is_smart_sleep_enabled())
   {
-      UNLOCK_TCPIP_CORE();
-      res = sys_arch_mbox_fetch(mbox, msg, wakeup_event_timeouts);
-      //prvResetNextTaskUnblockTime();
-      LOCK_TCPIP_CORE();
-      if (res == SYS_ARCH_TIMEOUT) {
-        sys_check_timeouts();
-        wakeup_event_timeouts = 100;
-        goto again;
-      }
+      sys_arch_mbox_fetch(mbox, msg, 0);
   }
   else
 #endif
@@ -397,9 +388,9 @@ again:
     LWIP_DEBUGF(TIMERS_DEBUG, ("sys_timeout: sleeptime=%"U32_F"\n", sleeptime));
 
     if (sleeptime == SYS_TIMEOUTS_SLEEPTIME_INFINITE) {
-      UNLOCK_TCPIP_CORE();
+      //UNLOCK_TCPIP_CORE();
       sys_arch_mbox_fetch(mbox, msg, 0);
-      LOCK_TCPIP_CORE();
+      //LOCK_TCPIP_CORE();
       return;
     } else if (sleeptime == 0) {
       sys_check_timeouts();
@@ -407,12 +398,11 @@ again:
       goto again;
     }
 
+    //UNLOCK_TCPIP_CORE();
 #if LWIP_DEBUG_SEELPTIME
     s_time= osKernelSysTick();
 #endif
-    UNLOCK_TCPIP_CORE();
     res = sys_arch_mbox_fetch(mbox, msg, sleeptime);
-    LOCK_TCPIP_CORE();
 #if LWIP_DEBUG_SEELPTIME
     e_time= osKernelSysTick();
 #endif
@@ -420,6 +410,7 @@ again:
 #if LWIP_DEBUG_TIMERNAMES && LWIP_DEBUG_SEELPTIME
     printf("real sleeptime = %d\r\n",e_time - s_time);
 #endif
+    //LOCK_TCPIP_CORE();
     if (res == SYS_ARCH_TIMEOUT) {
       /* If a SYS_ARCH_TIMEOUT value is returned, a timeout occurred
          before a message could be fetched. */
