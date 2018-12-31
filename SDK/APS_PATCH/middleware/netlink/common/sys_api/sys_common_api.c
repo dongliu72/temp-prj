@@ -102,3 +102,15 @@ int sys_set_config_rf_power_level(sys_rf_power_level_t level)
     
     return 0;
 }
+
+int tcp_set_dhcp_interval_retry_times(uint8_t dhcp_mode,uint32_t dhcp_interval,uint8_t dhcp_retry_times)
+{
+    
+    if (dhcp_interval ==0 || dhcp_retry_times==0 || dhcp_mode>1) {
+        return -1;
+    }
+    
+    set_dhcp_interval_retry_times(dhcp_mode,dhcp_interval,dhcp_retry_times);
+        
+    return 0;
+}

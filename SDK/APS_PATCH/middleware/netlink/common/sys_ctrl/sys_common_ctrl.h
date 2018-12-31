@@ -45,6 +45,14 @@ int base_nvm_mac_addr_src_read(u16 id, u16 len, void *buf);
 int base_nvm_mac_addr_src_write(u16 id, u16 len, void *ptr);
 int get_rf_power_level(u8 *level);
 int set_rf_power_level(u8 level);
+<<<<<<< HEAD
+=======
+int get_dhcp_arp_check(void);
+int get_dhcp_arp_check_from_fim(void);
+int set_dhcp_arp_check(u8 mode);
+int set_dhcp_interval_retry_times(u8 dhcp_mode,u32 dhcp_interval,u8 dhcp_retry_times);
+
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
 #ifdef __cplusplus
 }

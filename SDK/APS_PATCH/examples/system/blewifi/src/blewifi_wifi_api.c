@@ -22,7 +22,10 @@
 #include "wifi_nvm.h"
 #include "event_loop.h"
 #include "lwip_helper.h"
+<<<<<<< HEAD
 #include "sys_common_api.h"
+=======
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
 extern uint8_t g_ubAppCtrlRequestRetryTimes;
 
@@ -289,6 +292,7 @@ void BleWifi_Wifi_ResetRecord(void)
     wifi_connection_disconnect_ap();
 }
 
+<<<<<<< HEAD
 void BleWifi_Wifi_MacAddrWrite(uint8_t *data, int len)
 {
     uint8_t ubaMacAddr[6];
@@ -312,6 +316,8 @@ void BleWifi_Wifi_MacAddrRead(uint8_t *data, int len)
     BleWifi_Ble_DataSendEncap(BLEWIFI_RSP_ENG_WIFI_MAC_READ, ubaMacAddr, 6);
 }
 
+=======
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 static void BleWifi_Wifi_UpdateAutoConnList(uint16_t apCount, wifi_scan_info_t *ap_list)
 {
     wifi_auto_connect_info_t *info = NULL;

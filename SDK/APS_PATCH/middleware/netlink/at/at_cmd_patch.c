@@ -32,6 +32,10 @@ void _at_cmd_func_init_patch(void)
     /** Command Tables */
     _at_cmd_ble_func_init_patch();
     _at_cmd_wifi_func_init_patch();
+<<<<<<< HEAD
+=======
+#endif
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
     _at_cmd_tcpip_func_init_patch();
 
     /** Functions */

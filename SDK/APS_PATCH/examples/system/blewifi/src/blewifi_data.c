@@ -23,13 +23,19 @@
 #include "blewifi_ctrl.h"
 #include "blewifi_server_app.h"
 #include "blewifi_wifi_api.h"
+<<<<<<< HEAD
 #include "blewifi_ble_api.h"
+=======
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 #include "wifi_api.h"
 #include "lwip/netif.h"
 #include "mw_ota.h"
 #include "blewifi_ctrl_http_ota.h"
+<<<<<<< HEAD
 #include "hal_auxadc_patch.h"
 #include "hal_system.h"
+=======
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
 #define HI_UINT16(a) (((a) >> 8) & 0xFF)
 #define LO_UINT16(a) ((a) & 0xFF)
@@ -360,6 +366,7 @@ void BleWifi_Wifi_OtaServerVersionRsp(uint16_t fid)
     BleWifi_Ble_DataSendEncap(BLEWIFI_RSP_HTTP_OTA_SERVER_VERSION, data, 2);
 }
 
+<<<<<<< HEAD
 static void BleWifi_MP_CalVbat(uint8_t *data, int len)
 {
     float fTargetVbat;
@@ -394,6 +401,8 @@ static void BleWifi_Eng_SysReset(uint8_t *data, int len)
     Hal_Sys_SwResetAll();
 }
 
+=======
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 // it is used in the ctrl task
 void BleWifi_Ble_ProtocolHandler(uint16_t type, uint8_t *data, int len)
 {
@@ -475,6 +484,7 @@ void BleWifi_Ble_ProtocolHandler(uint16_t type, uint8_t *data, int len)
             BleWifi_Wifi_OtaServerVersionReq();
             break;
 
+<<<<<<< HEAD
         case BLEWIFI_REQ_MP_CAL_VBAT:
             BLEWIFI_INFO("BLEWIFI: Recv BLEWIFI_REQ_MP_CAL_VBAT \r\n");
             BleWifi_MP_CalVbat(data, len);
@@ -515,6 +525,8 @@ void BleWifi_Ble_ProtocolHandler(uint16_t type, uint8_t *data, int len)
             BleWifi_Ble_MacAddrRead(data, len);
             break;
 
+=======
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
         default:
             break;
     }

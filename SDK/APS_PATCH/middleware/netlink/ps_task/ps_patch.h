@@ -59,6 +59,12 @@ void ps_patch_init(void);
 void ps_init_patch(void);
 void ps_wait_xtal_ready_patch(void);
 int ps_sleep_patch(void);
+<<<<<<< HEAD
+=======
+void ps_update_boot_gpio_int_status(uint32_t gpio_status);
+void ps_set_wakeup_callback_internal(PS_WAKEUP_CALLBACK callback);
+int  ps_is_smart_sleep_enabled(void);
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 void ps_dbg_cmd_conf_io(char *io_p);
 void ps_parse_command_patch(char *pbuf, int len);
 uint32_t ps_synchronize_timers_patch(void);

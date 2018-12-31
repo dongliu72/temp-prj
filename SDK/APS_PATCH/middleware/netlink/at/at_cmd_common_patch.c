@@ -30,6 +30,15 @@
 #include "at_cmd_common.h"
 #include "hal_dbg_uart.h"
 #include "hal_uart.h"
+<<<<<<< HEAD
+=======
+#include "hal_pin.h"
+#include "hal_pin_def.h"
+#include "at_cmd_task_patch.h"
+#include "at_cmd_common_patch.h"
+#include "hal_pin_config_patch.h"
+
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 #if defined(__AT_CMD_TASK__)
 #include "at_cmd_task.h"
 #endif
@@ -37,6 +46,8 @@
 #include "wpa_supplicant_i.h"
 //#include "le_cmd_app_cmd.h"
 
+
+E_IO01_UART_MODE g_eIO01UartMode;
 
 extern at_uart_buffer_t at_rx_buf;
 extern int at_echo_on;
@@ -186,6 +197,38 @@ void _uart1_rx_int_do_at_patch(uint32_t u32Data)
     }
 }
 
+<<<<<<< HEAD
+=======
+void at_cmd_switch_uart1_dbguart(void)
+{
+    osSemaphoreWait(g_tSwitchuartSem, osWaitForever);
+
+    if (g_eIO01UartMode == IO01_UART_MODE_AT)
+    {
+        Hal_Pin_ConfigSet(0, PIN_TYPE_UART_APS_TX, PIN_DRIVING_FLOAT);
+        Hal_Pin_ConfigSet(1, PIN_TYPE_UART_APS_RX, PIN_DRIVING_FLOAT);
+
+        Hal_Pin_ConfigSet(8, PIN_TYPE_UART1_TX, PIN_DRIVING_FLOAT);
+        Hal_Pin_ConfigSet(9, PIN_TYPE_UART1_RX, PIN_DRIVING_HIGH);
+    }
+    else
+    {
+        Hal_Pin_ConfigSet(8, PIN_TYPE_UART_APS_TX, PIN_DRIVING_FLOAT);
+        Hal_Pin_ConfigSet(9, PIN_TYPE_UART_APS_RX, PIN_DRIVING_HIGH);
+     
+        Hal_Pin_ConfigSet(0, PIN_TYPE_UART1_TX, PIN_DRIVING_FLOAT);
+        Hal_Pin_ConfigSet(1, PIN_TYPE_UART1_RX, PIN_DRIVING_FLOAT);
+    }
+    g_eIO01UartMode = (E_IO01_UART_MODE)!g_eIO01UartMode;
+    osSemaphoreRelease(g_tSwitchuartSem);    
+}
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
+
+void at_io01_uart_mode_set(E_IO01_UART_MODE eMode)
+{
+    g_eIO01UartMode = eMode;
+}
+
 
 /*
  * @brief AT Common Interface Initialization (AT Common)
@@ -194,7 +237,12 @@ void _uart1_rx_int_do_at_patch(uint32_t u32Data)
 void at_cmd_common_func_init_patch(void)
 {
 	memset(&at_rx_buf, 0, sizeof(at_uart_buffer_t));
+<<<<<<< HEAD
     
+=======
+    at_io01_uart_mode_set(HAL_PIN_0_1_UART_MODE_PATCH);
+
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
     uart1_rx_int_do_at = _uart1_rx_int_do_at_patch;
     _uart1_rx_int_at_data_receive_tcpip = _uart1_rx_int_at_data_receive_tcpip_patch;
 }

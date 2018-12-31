@@ -127,6 +127,12 @@ extern void lwip_task_create(void);
 #include "scrt_patch.h"
 #include "controller_task_patch.h"
 #include "rf_cfg.h"
+<<<<<<< HEAD
+=======
+#include "wifi_mac_task_patch.h"
+#include "mw_fim_patch.h"
+#include "network_config_patch.h"
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
@@ -263,6 +269,9 @@ void SysInit_EntryPoint(void)
 	// CMSIS-RTOS
 	freertos_patch_init();
 	ISR_Pre_Init_patch();
+
+    // FIM
+    MwFim_PreInit_patch();
 }
 
 /*************************************************************************
@@ -336,6 +345,32 @@ void Main_WaitforMsqReady()
 
 /*************************************************************************
 * FUNCTION:
+*   Sys_WaitForMsqFlashAccessDone
+*
+* DESCRIPTION:
+*   wait for M0 flash access done
+*
+* PARAMETERS
+*   none
+*
+* RETURNS
+*   none
+*
+*************************************************************************/
+void Sys_WaitForMsqFlashAccessDone(void)
+{
+	const uint32_t m0_ready_msk = 1 << SYS_SPARE_0_M0_FLASH_ACCESS_DONE;
+	uint32_t reg_spare_0_val;
+
+	do {
+		Hal_Sys_SpareRegRead(SPARE_0, &reg_spare_0_val);
+	} while (!(reg_spare_0_val & m0_ready_msk));
+
+	Hal_Sys_SpareRegWrite(SPARE_0, reg_spare_0_val & ~m0_ready_msk);
+}
+
+/*************************************************************************
+* FUNCTION:
 *   Sys_DriverInit
 *
 * DESCRIPTION:
@@ -350,6 +385,11 @@ void Main_WaitforMsqReady()
 *************************************************************************/
 static void Sys_DriverInit_patch(void)
 {
+    if (!Boot_CheckWarmBoot())
+    {
+        Sys_WaitForMsqFlashAccessDone();
+    }
+
     // Set power
     Sys_PowerSetup();
 
@@ -459,12 +499,19 @@ static void Sys_DriverInit_patch(void)
 		uart1_mode_set_default();
 		uart1_mode_set_at();
 	}
+<<<<<<< HEAD
+=======
+
+	#if defined(__WATCHDOG__) //close watch dog here.
+    //Watch Dog
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
     if (Hal_Sys_StrapModeRead() == BOOT_MODE_NORMAL)
     {
         Hal_Vic_IntTypeSel(WDT_IRQn, INT_TYPE_FALLING_EDGE);
         Hal_Vic_IntInv(WDT_IRQn, 1);
         Hal_Wdt_Init(WDT_TIMEOUT_SECS * SystemCoreClockGet());
     }
+	#endif
 }
 
 /*************************************************************************
@@ -545,6 +592,9 @@ static void Sys_ServiceInit_patch(void)
     tLayout.ulaImageAddr[1] = MW_OTA_IMAGE_ADDR_2;
     tLayout.ulImageSize = MW_OTA_IMAGE_SIZE;
     MwOta_Init(&tLayout, 0);
+
+    // DHCP ARP check
+    tcpip_config_dhcp_arp_check_init();
 }
 void Sys_IdleHook_patch(void)
 {

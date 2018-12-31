@@ -1,4 +1,325 @@
 ## Release Version:
+<<<<<<< HEAD
+=======
+SDK Package: MP v1.3
+Patch_Lib : 2899
+ROM_CODE: 1655 
+
+## Release Date: 2018/12/6
+
+## Function & Feature Update 
+1. Documents updating:
+ 1.1 OPL1000-AT-instruction-set-and-examples,  R05-v30, Add AT+RFTM (BeaconOnlyMode).
+2. Tool version information and update:
+ 2.1 download tool: v0.23. No change since v1.1.1.5;        
+ 2.2 pin-mux tool: v0.8. No change since v1.1.1.7;   
+ 2.3 MP download tool: v0.8, no change since MP1.2. 
+3. WiFi power-saving enhancement.
+4. Modified SDK image to support "at+cipstamac" and "at+bleaddr" command.   
+5. AT command support skipping any DATA traffic during connection.
+
+## Bug Fix List 
+1. Fix “PA setting would be abnormal" issue if BLE operation is terminated by Token Switch.
+2. Fix "V017 deep sleep fail" issue.
+
+## Notes List 
+1. Websocket feature is on-developing 
+2. More examples such as MQTT, power save are on-developing. 
+
+*****
+
+## Release Version:
+SDK Package: MP v1.2
+Patch_Lib : 2882
+ROM_CODE: 1655 
+
+## Release Date: 2018/11/28
+
+## Function & Feature Update 
+1. Documents updating:
+    1.1 OPL1000-multiple-dev-download-tool-user-guide, R01-v01, add user guide for download-tool to support mass production.
+ 1.2 OPL1000-DEVKIT-getting-start-guide, R02-v07, update using ICE interface part.
+ 1.3 OPL1000-Flash-User-Guide, R01-v03, update chapter 5.
+ 1.4 OPL1000-Iperf-Measurement-Guide, R01-v03, user guide document for iperf demo. 
+ 1.5 OPL1000-Demo-BLE-setup-network-guide，R01-v03, update test steps.   
+2. Tool version information and update:
+ 2.1 download tool: v0.23. No change since v1.1.1.5;        
+ 2.2 pin-mux tool: v0.8. No change since v1.1.1.7;   
+ 2.3 MP download tool: v0.8, support multiple device firmware download for mass production. 
+3. Release multiple device download tool to support mass production. Place folder: Tool\Mass_Production .
+4. update all examples pinmux setting, enable IO20,IO21 to use M3 ICE interface.
+5. update SPI_master example, add multi-byte write function as master.   
+6. Build Iperf Example for wifi conection stress test. Folder: examples\wifi\iperf
+7. Add new API for update AP’s channel in auto connect list.
+8. Rearrange stack and heap size for HTTP with MbedTLS example.
+9. Redefine wifi_config_set_skip_dtim function prototype.
+10. BLE configure AP demo is updated, mobile APP supports BLE OTA function. 
+11. Implement new DCOC algorithm to improve RF performance.
+12. Enhance power saving realization, easy to enter into power save mode when there is no wifi data traffic.
+13. Refine FIM groups for MAC address.
+14. Add new feature of "store the bonding information to flash for LE host" 
+15. Support run-time modify retry times and interval in DHCP mechanism.
+
+## Bug Fix List 
+
+1. Fix “can't sleep" issue in smart sleep scenario.
+2. Fix "BLE meets disconnection caused by Wi-Fi scanning enabled" issue. 
+3. Fix “Add xtal ready checking at warm-boot” issue.
+4. Fix bug of “M3 sometimes asserts and lead to watchdog timer reset”.
+5. Fix a bug in I2C target address change operation. Before change the target address, need to wait that the master Tx/Rx behavior is finished.
+6. Fix "Too short delay time for host changing baud rate” issue.
+7. Fix bug of "Send service rsp error in LE function"
+8. Fix bug of "token switch priority tuning for WiFi/BLE stable coexistence" 
+9. Fix bug of "ICE cannot be connected under power save mode" 
+
+
+## Notes List 
+1. Websocket feature is on-developing 
+2. More examples such as MQTT, power save are on-developing.
+
+*****
+
+## Release Version:
+SDK Package: MP v1.1
+Patch_Lib : 2726
+ROM_CODE: 1655 
+
+## Release Date: 2018/10/30
+
+## Function & Feature Update 
+1. Documents updating:
+1.1 OPL1000-AT-instruction-set-and-examples: R05-V29,  Update AT+CWJAP description.
+1.2 OPL1000-SDK-Development-guide: R01-V06, Update section2, example directory is updated. 
+1.3 OPL1000-WIFI-BLE-API-guide: MP1.1, update partial WIFI API.
+1.4 OPL1000-BLEWIFI-Application-Dev-Guide: R01-V06, add BLE/WiFi ota commands description.
+1.5 OPL1000-Demo-BLE-setup-network-guide: R01-V02, update OPL1000 3rd APK, wifi/ble API and the configure scenario.
+2. Tool version information and update:
+2.1 download tool: v0.23. No change since v1.1.1.5;        
+2.2 pin-mux tool: v0.8. No change since v1.1.1.7;   
+3. Update blewifi example, beside support BLE configure WIFI AP function, also support BLE OTA and WIFI OTA.  
+4. Remove old blewifi example from Bluetooth sub-directory, add new blewifi example under “system” sub-directory.
+5. Support over write RF setting parameters in flash by both AT command and CLI command.
+6. Enable SARADC to improve WIFI scan AP performance. 
+7. Add a new AT command “at+phydump” to support  physical layer information dump function 
+8. Update OTP setting and timing function.
+9. Add xtal ready checking at warm-boot, this is used to reduce the average warm-boot cost. 
+10.  Add a feature “return connect failed info when try to auto connect and failed.”
+11. Add API to query current numbers of AP saved in flash.
+12. Add setting for BLW HP (high power amplifier) 
+13. Implement new physical setting for AGC module. 
+
+
+## Bug Fix List 
+1. Fix bug “ enter sleep fail when timer sleep is waked up by IO trigger” 
+2. Fix bug “when read the internal VBAT, the result sometimes is 0.”
+3. Fix a pin-mux restore error bug, solve 1mA residual current issue when enter into sleep over 300ms. 
+4. Solve “connect security AP failed issue when use directly connect from flash”
+5. Solve issue of “WiFi connected distance become shorter after BLE ADV”
+6. Solve issue of "Assertion-Fail happens in Token Switch during smart-sleep”
+7. For WIFI function, event shall be returned to indicate the status “when invoked auto connect start but there is no ap in the auto connect list”
+
+
+## Notes List 
+1. Websocket feature is on-developing 
+2. More examples such as MQTT, power save are on-developing. 
+
+*****
+
+## Release Version:
+SDK Package: MP v1.0
+Patch_Lib : 2632
+ROM_CODE: 1655 
+
+## Release Date: 2018/10/12
+
+## Function & Feature Update 
+1. Documents updating:
+ 1.1 OPL1000-AT-instruction-set-and-examples: R05-V28,  add RF related AT instructions description.    
+ 1.2 Add a new document "OPL1000-AT-UART-Switch-Command" , introduce how to set and switch AT/Debug UART mode for IO0/IO1.    
+2. Tool version information and update:
+ 2.1 download tool: v0.23. No change since v1.1.1.5;        
+ 2.2 pin-mux tool: v0.8. No change since v1.1.1.7;   
+3. hello_world and blink two examples are updated, add  IO0/1 UART work mode setting code.    
+4. Add I2C speed configuration API functions.
+5. Add 2nd bootloader, it supports higher UART baud rate (up to 921600bps) for firmware download.   
+6. Add BLE 1Mbps/2Mbps switch AT command. 
+7. Add AT command to support Uart and DbgUart switch function for IO0 & IO1.
+8. Implement new physical setting to improve WiFi performance. 
+9. Reduce MSQ stack size to extend IRAM3 size.
+10. Add DHCP OPTION to support more APs.
+11. Re-architecture LWIP timer scheduling mechanism for smart sleep.
+12. Add "dynamically turn on/off OTP and Security IP clock" feature. 
+
+
+## Bug Fix List 
+1. Fix "WiFi MAC stuck during establishing connection" issue. 
+2. Fix "TCP tx stress test cause frame encryption failed" issue. 
+3. Delay CPOR 16 cycles to avoid siwtch-to-xtal issue.
+4. Fix  "DTM cannot transmit over 64 length" issue.  
+5. Fix  a bug in BLE HCI command when controller cannot find a RPA associated with the Peer Identity Address.
+6. Fix a bug in AT+CWJAP command when connect to a WPA/WPA2 AP without key in password.
+7. For power save feature, fix a bug in "minimum sleep duration limitation".
+8. Delay SW1 and RET_OFF time to avoid HW RESET issue on warm-boot.
+9. Solve auto connect & retry mechanism conflict problem.
+10. Update "at+rfhp=" command to solve RF HP setting not working problem. 
+
+
+
+## Notes List 
+1. Websocket feature is on-developing 
+2. More examples such as MQTT, power save are on-developing. 
+
+*****
+
+## Release Version:
+SDK Package: 1.1.1.10
+Patch_Lib : 2517
+ROM_CODE: 1655 
+
+## Release Date: 2018/9/25
+
+## Function & Feature Update 
+1. Documents updating:
+ 1.1 OPL1000-AT-instruction-set-and-examples: R05-V23,  add several new AT instructions description.    
+ 1.2 OPL1000-WIFI-BLE-API-guide: v1.1.1.10, wifi part API is updated.   
+2. Tool version information and update:
+ 2.1 download tool: v0.23. No change since v1.1.1.5;        
+ 2.2 pin-mux tool: v0.8.No change since v1.1.1.7;   
+3. spi_master example under peripherals folder is updated.   
+4. Add WIFI data rate AT command  AT+MACDATARATE.
+5. Add http post blocking API.   
+6. Close M0 print log in order to improve system performance.
+7. Update power saving RF module setting. 
+8. Refine http client API request realization in lwip module.
+9. Refine stack size and task priority for running "AT+CIPSEND".
+10. Implement new RF setting for WIFI CH11/12 configuration.
+
+
+## Bug Fix List 
+1. Fix a bug in "security API" by temporarily disable dynamic switch of OTP/Security IP clock. 
+2. Fix a bug in "LE 2M PHY configuration" implementation. 
+3. Fix a bug in "HCI_Reset command" implementation.
+4. Fix a bug in WIFI-releasred example realization, change "opl_event_loop" task local variable allocation method.  
+5. Fix  "IO wake-up not working" issue 
+
+
+## Notes List 
+1. Websocket feature is on-developing 
+2. More examples such as MQTT, power save are on-developing. 
+
+*****
+
+## Release Version:
+SDK Package: 1.1.1.7
+Patch_Lib : 2475
+ROM_CODE: 1655 
+
+## Release Date: 2018/9/14
+
+## Function & Feature Update 
+1. Documents updating:
+ 1.1 OPL1000-AT-instruction-set-and-examples: R05-V17,  add several new AT instruction description.    
+ 1.2 OPL1000-pinmux-tool-user-guide: R02-V05, add generated include file introduction, updated according to v0.8 SW.   
+2. Tool version information and update:
+ 2.1 download tool: v0.23. No change since v1.1.1.5.        
+ 2.2 pin-mux tool: v0.8. Add include file generation function.   
+3. All examples are updated because pinmux setting method is changed.   
+4. Firmware opl1000_at.bin is added under FW_Binary folder. This patch bin file is used to evaluate AT command. 
+5. RF HPA (high power amplifier) setting is updated. AT+RFHP instrument is supported in this release.   
+6. Refine stack size and priority of tasks.
+7. Add AT Uart and DbgUart switch function for IO0 & IO1. 
+    When  IO0/IO1 is AT uart, type AT command "at+switchdbg" will switch it to DbgUart.
+    When IO0/IO1 is Dbg uart, type CLI command  "switchat" will switch it to AT Uart.
+8. Support both new-line and none new-line mode in AT_CMD.
+
+## Bug Fix List 
+1. Fix a bug in "at+counters?" instruction.  
+2. Solve "hidden AP connection fail" problem. 
+3. Fix a bug in sleep duration calculation.
+4. Update valid range for AT+WRITEFLASH and AT+ERASEFLASH. 
+
+
+## Notes List 
+1. TCP/IP AT instructions may make stack overflow, this issue will be fixed in next release. 
+2. Websocket feature is on-developing 
+3. More examples such as MQTT, power save are on-developing. 
+
+*****
+
+## Release Version:
+SDK Package: 1.1.1.6
+Patch_Lib : 2430
+ROM_CODE: 1655 
+
+## Release Date: 2018/9/7
+
+## Function & Feature Update 
+1. Documents updating:
+    1.1 OPL1000-AT-instruction-set-and-examples: R05-V15,  Add several new AT instruction description.    
+    1.2 OPL1000-pinmux-tool-user-guide: R02-V04, updated according to v0.7 SW. GPIO setting is changed.  
+2. Tool version information and update:
+    2.1 download tool: v0.23. No change since v1.1.1.5.        
+    2.2 pin-mux tool: v0.7. GPIO setting is changed. Fixed one bug in SPI quad mode setting.   
+3. Switch off unused SRAM in deep sleep mode to improve power save performance.  
+4. Support multiple external input wake-up mechanism. 
+5. Add mbedTLS library to support TLS feature.   
+6. Reduce AT patch code to enlarge ram size, provide more space for user application.       
+7. Update driver to use correct deep sleep behavior.
+8. Refine stack size and priority of tasks. 
+9. Set WiFi/BLE power level separately and HIGH FI/FC in Main_PowerSetup to improve RF power consumption. 
+10. Replace SW crypto module with hardware-accelerated function for mbedTLS module.
+11. Implement SHA-related API with HW security engine
+
+## Bug Fix List 
+1. Fix bugs in I2C master initialization and receive data operation.    
+2. Fix a bug in SSID scan list store implementation. 
+3. Fix a bug in smart sleep when it is configured at SysInit.
+4. Fix a bug in wifi mode setting when not initial wifi module. 
+
+
+## Notes List 
+1. TCP/IP AT instructions has issue in this release and will be fixed in next version.  
+2. websocket feature is on-developing 
+3. More examples such as MQTT, power save are on-developing. 
+
+*****
+
+## Release Version:
+SDK Package: 1.1.1.5
+Patch_Lib : 2382
+ROM_CODE: 1655 
+
+## Release Date: 2018/8/30
+
+## Function & Feature Update 
+1. Documents updating:
+    1.1 OPL1000-Flash-User-Guide: R01-V02,  Flash layout is updated.  
+2. I2C low driver is updated.     
+3. AT instruction ending is changed from "\r" to "\r\n" 
+4. Tool version information and update:
+    4.1 download tool: v0.23. AT instruction calling format is changed. Add minimize processing on UI window.        
+    4.2 pin-mux tool: v0.6. No change since v1.1.1.1;    
+5. RF mode setting is updated.  
+6. Start address of BLE host data and tcpip data in Flash are adjusted. Refer OPL1000-Flash-User-Guide document.         
+7. Improve certain AP connection success rate, such as ASUS AP.
+8. Support IPC command to control WIFI data rate. 
+9. Implement SHA-1 API with HW security engine.
+10. Support DHCP APR check mechanism in AT+DHCPARPCHK command.
+
+## Bug Fix List 
+1. Fix a bug in I2C driver.    
+2. Fix a bug in ISR UART RX buffer process of AT and CLI command.
+3. Fix a bug in GPIO driver, original driver does not handle race condition case.  
+
+
+## Notes List 
+1. websocket feature is on-developing 
+2. More examples such as MQTT, power save are on-developing. 
+
+*****
+
+## Release Version:
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 SDK Package: 1.1.1.4
 Patch_Lib : 2350
 ROM_CODE: 1655 
@@ -7,14 +328,14 @@ ROM_CODE: 1655
 
 ## Function & Feature Update 
 1. Documents updating:
- 1.1 OPL1000-Power-Saving-Introduction: R01-V02,  document format is  structured.  
- 1.2 Add a new document OPL1000-Demo-ota-wifi-guide R01-V01 under Demo\OTA_WIFI folder, this document introduce OTA WIFI implementation method and verification flow.   
- 1.3 Add a new document OPL1000-Power-Consumption-Measurement-Guide R01-V01, which introduce how to measure power consumption for OPL1000 different power save mode. 
+    1.1 OPL1000-Power-Saving-Introduction: R01-V02,  document format is  structured.  
+    1.2 Add a new document OPL1000-Demo-ota-wifi-guide R01-V01 under Demo\OTA_WIFI folder, this document introduce OTA WIFI implementation method and verification flow.   
+    1.3 Add a new document OPL1000-Power-Consumption-Measurement-Guide R01-V01, which introduce how to measure power consumption for OPL1000 different power save mode. 
 2. A new demo "OTA_WIFI"  is added to Demo\OTA_WIFI. This demo shows how to setup http server and complete OTA function by WIFI.     
 3. OTA_WIFI example is updated to fit new OTA firmware image file format. 
 4. Tool version information and update:
- 4.1 download tool: v0.21. No change since v1.1.1.3;       
- 4.2 pin-mux tool: v0.6. No change since v1.1.1.1;    
+    4.1 download tool: v0.21. No change since v1.1.1.3;       
+    4.2 pin-mux tool: v0.6. No change since v1.1.1.1;    
 5. Optimize current for APS/MSQ peripheral blocks clock control.  
 6. Switch off unused SRAM in case of deep sleep to reduce current consumption.       
 7. Improve WIFI AP connection success rate for certain brand AP, such as CISCO AP.
@@ -41,16 +362,16 @@ ROM_CODE: 1655
 
 ## Function & Feature Update 
 1. Documents updating:
- 1.1 OPL1000-WIFI-BLE-API-guide: v1.1.1.3,  updated document according to BLE and WIFI part APIs.  
- 1.2 OPL1000-DEVKIT-getting-start-guide: R02-V07, Update for A1 Devkit board, add OTA image pack introduction.   
- 1.3 OPL1000-SDK-getting-start-guide:  R02-V06, add introduction of how to build OTA image file .
- 1.4 OPL1000-SDK-Development-guide: R01-V08, add introduction to two new adding examples, OTA_wifi and https_request. 
- 1.5 Add a new document OPL1000-PowerSave  V01, which introduce OPL1000 power save mode and setting method . 
+    1.1 OPL1000-WIFI-BLE-API-guide: v1.1.1.3,  updated document according to BLE and WIFI part APIs.  
+    1.2 OPL1000-DEVKIT-getting-start-guide: R02-V07, Update for A1 Devkit board, add OTA image pack introduction.   
+    1.3 OPL1000-SDK-getting-start-guide:  R02-V06, add introduction of how to build OTA image file .
+    1.4 OPL1000-SDK-Development-guide: R01-V08, add introduction to two new adding examples, OTA_wifi and https_request. 
+    1.5 Add a new document OPL1000-PowerSave  V01, which introduce OPL1000 power save mode and setting method . 
 2. A new example https_request is added. This example shows how to send request to https server and get response based on mbedtls module.     
 3. Add and enable watchdog mechanism
 4. Tool version information and update:
- 4.1 download tool: v0.21. Fix a bug in OTA header define; Remove "scan system process" feature to avoid some anti-virus software recognize download tool as virus.       
- 4.2 pin-mux tool: v0.6. No change since v1.1.1.1;    
+    4.1 download tool: v0.21. Fix a bug in OTA header define; Remove "scan system process" feature to avoid some anti-virus software recognize download tool as virus.       
+    4.2 pin-mux tool: v0.6. No change since v1.1.1.1;    
 5. GPIO example is updated, add IO20 support.  
 6. Power saving APIs are re-defined.       
 7. Improve channel selection algorithm.
@@ -80,16 +401,16 @@ ROM_CODE: 1655
 
 ## Function & Feature Update 
 1. Documents updating:
- 1.1 OPL1000-WIFI-BLE-API-guide: v1.1.1.2,  updated document according to BLE and WIFI part APIs.  
- 1.2 OPL1000-patch-download-tool-user-guide: R03-V05, add OTA image pack introduction, update download procedure according.   
- 1.3 OPL1000-AT-instruction-set-and-examples: R05-V12, add more descrption for AT+CWMODE, AT+CWLAP and AT+WRITEFLASH commands.
- 1.4 OPL1000-OTA-User-Guide: R01-V04, update OTA image pack operation figure according to v0.20 download tool. 
- 1.5 Add a new document OPL1000-IOT-Application-Framework-User-Guide R01-V01, which introduce BLE configure WIFI AP working principle. 
+    1.1 OPL1000-WIFI-BLE-API-guide: v1.1.1.2,  updated document according to BLE and WIFI part APIs.  
+    1.2 OPL1000-patch-download-tool-user-guide: R03-V05, add OTA image pack introduction, update download procedure according.   
+    1.3 OPL1000-AT-instruction-set-and-examples: R05-V12, add more descrption for AT+CWMODE, AT+CWLAP and AT+WRITEFLASH commands.
+    1.4 OPL1000-OTA-User-Guide: R01-V04, update OTA image pack operation figure according to v0.20 download tool. 
+    1.5 Add a new document OPL1000-IOT-Application-Framework-User-Guide R01-V01, which introduce BLE configure WIFI AP working principle. 
 2. A new example ota (via WIFI) is added. This example shows how to implement OTA over WIFI connection.     
 3. DEVKIT USB to UART is connected to IO0/IO1 instead of IO8/IO9. 
 4. Tool version information and update:
- 4.1 download tool: v0.20. Add OTA image pack function. Unify download method to pure patch bin file and OTA image file.      
- 4.2 pin-mux tool: v0.6. No change since v1.1.1.1    
+    4.1 download tool: v0.20. Add OTA image pack function. Unify download method to pure patch bin file and OTA image file.      
+    4.2 pin-mux tool: v0.6. No change since v1.1.1.1    
 5. AT command is mapping to IO0/IO1, not IO8/IO9. IO8 and IO9 is used for debug UART log information output.  
 6. Improve WIFI TX path throughput, waiting time is reduced to 1ms from 2000ms when TX queue is full.     
 7. Remove the limitation of change WIFI mac address before disconnect.
@@ -123,12 +444,12 @@ ROM_CODE: 1655
     1.4 OPL1000-pinmux-tool-user-guide: R01-V03,  A1 chip opens two more IO pin resource , PinMux tool is updated. 
     1.5 OPL1000-DEVKIT-getting-start-guide: R02-V06, updated for A1 chip.
     1.6 OPL1000-SDK-getting-start-guide: R02-V05, update section 3 because A1 chip SDK project setting is changed.
- 1.7 OPL1000-SDK-Development-guide: R01-V07, release package folder structure and example project building description are updated.
+    1.7 OPL1000-SDK-Development-guide: R01-V07, release package folder structure and example project building description are updated.
 2. All examples project setting is updated from A0 configuration to A1 configuration.    
 3. "log output" method is updated in several example projects. 
 4. Tool version information and update:
- 4.1 download tool: v0.19. Support A1 chip.     
- 4.2 pin-mux tool: v0.6. Support A1 chip, add IO16,IO17 additional PIN resource    
+    4.1 download tool: v0.19. Support A1 chip.     
+    4.2 pin-mux tool: v0.6. Support A1 chip, add IO16,IO17 additional PIN resource    
 5. Add several new AT commands：AT+READFLASH, AT+WRITEFLASH and AT+ERASEFLASH etc. 
 6. Support RF high/low power configuration   
 7. Add a new feature of "DCOC dump".  Use at+showdc and at+dcoc command to dump DC and calibration data.
@@ -154,7 +475,7 @@ ROM_CODE: 809
 
 ## Function & Feature Update 
 1. Documents updating:
- 1.1 OPL1000-WIFI-BLE-API-guide: v1.0.1.28, WIFI part APIs are updated.  
+    1.1 OPL1000-WIFI-BLE-API-guide: v1.0.1.28, WIFI part APIs are updated.  
     1.2 OPL1000-RF-Testing-Guide: R01-V02, several captured figures are updated.    
     1.3 OPL1000-AT-instruction-set-and-examples: R05-V10, add more description for AT+BLEADDR and AT+CIPSTAMAC.
     1.4 OPL1000-Demo-tcp-client-guide: R01-V02, add TCP server send ACK message introduction. 

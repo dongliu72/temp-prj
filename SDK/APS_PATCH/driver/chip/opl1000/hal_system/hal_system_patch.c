@@ -65,6 +65,9 @@ Head Block of The File
 #define AOS_APS_CLK_EN_UART_0_PCLK   (1<<13)
 #define AOS_APS_CLK_EN_UART_1_PCLK   (1<<14)
 #define AOS_APS_CLK_EN_DBG_UART_PCLK (1<<15)
+#define AOS_APS_CLK_EN_OTP_PCLK      (1<<16)
+#define AOS_APS_CLK_EN_DMA_HCLK      (1<<18)
+#define AOS_APS_CLK_EN_SCRT_HCLK     (1<<24)
 #define AOS_APS_CLK_EN_PWM_CLK       (1<<26)
 #define AOS_APS_CLK_EN_JTAG_HCLK     (1<<28)
 #define AOS_APS_CLK_EN_WDT_INTERNAL  (1<<30)
@@ -789,6 +792,28 @@ void Hal_Sys_ApsClkChangeApply_patch(void)
     if (AOS->R_M3CLK_SEL & AOS_APS_CLK_EN_WDT_PCLK)
     Hal_Wdt_Feed(WDT_TIMEOUT_SECS * SystemCoreClockGet());
 }
+<<<<<<< HEAD
+=======
+
+
+/**
+ * @brief To gate perpherials clock.
+ *        When enable perpherial, API needs to turn on the clock.
+ *
+ * Peripherals:
+ *    - I2C
+ *    - TMR 0/1
+ *    - WDT
+ *    - SPI 0/1/2
+ *    - UART 0/1
+ *    - DbgUart
+ *    - Pwm
+ *    - Jtag
+ *    - OTP
+ *    - DMA
+ *    - SCRT
+ */
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
 void Hal_Sys_DisableClock_impl(void)
 {
     uint32_t u32DisClk;
@@ -803,7 +828,15 @@ void Hal_Sys_DisableClock_impl(void)
                 AOS_APS_CLK_EN_UART_1_PCLK |
                 AOS_APS_CLK_EN_DBG_UART_PCLK |
                 AOS_APS_CLK_EN_PWM_CLK |
+<<<<<<< HEAD
                 AOS_APS_CLK_EN_WDT_INTERNAL;
+=======
+                AOS_APS_CLK_EN_WDT_INTERNAL |
+                AOS_APS_CLK_EN_OTP_PCLK |
+                AOS_APS_CLK_EN_DMA_HCLK | 
+                AOS_APS_CLK_EN_SCRT_HCLK;
+    
+>>>>>>> a175fc78be987a3ef959ec3c8cca23d52012cfff
     if (Hal_Sys_StrapModeRead() == STRAP_NORMAL_MODE)
         u32DisClk |= AOS_APS_CLK_EN_JTAG_HCLK;
     AOS->R_M3CLK_SEL = AOS->R_M3CLK_SEL & ~u32DisClk;    
