@@ -1,4 +1,100 @@
 ## Release Version:
+SDK Package: 1.0.1.24
+Patch_Lib : 1849
+ROM_CODE: 809    
+
+## Release Date:  2018/06/28
+
+## Function & Feature Update
+1. Documents updating: 
+ 1.1 OPL1000-WIFI-BLE-API-guide: v1.0.1.24, WIFI part APIs are updated.  
+ 1.2 OPL1000-AT-instruction-set-and-examples: R05-V06, fixed wrong description in several AT commands.  
+2. Example codes updating:
+ 2.1 sntp example is updated, wifi ap SSID is changed to Opulinks-TEST-AP.    
+ 2.2 add a new protocol example: mDNS, service broadcast function is supported.   
+3. Tool version information:
+ 3.1 download tool: v0.17. No change since v1.0.1.23.    
+ 3.2 pin-mux tool: v0.5. No change since v1.0.1.19    
+4. Fixed bugs in several AT commands  
+5. Optimize IPC module realization    
+6. Solve "printf instruction may cause caller task stack overflow" issue
+7. Extend WIFI scan channel list range from 1~11 to 1~13 
+8. Extend Adaptive DTIM interval settings to maximum 255 
+
+## Bug Fix List 
+1. Solve OPL1000 connecting SSID hidden AP failure issue. 
+2. Fix "no message of success or failure" bug in AT command AT+BLECONNPARAM
+3. Fix bugs in AT commands AT+CIPCLOSE, AT+BLEADVPARAM, AT+BLENAME, AT+BLECONNPARAM, AT+BLENAME
+4. Fix the bug of "auto connect failed when AP's mode is changed from security to open"
+
+## Notes List 
+1. OTA, open SSL features are on-developing.  
+2. mDNS service inquiring function is on-developing. 
+3. More examples such as MQTT, power saving development are on-going. 
+
+*****
+## Release Version:
+SDK Package: 1.0.1.23
+Patch_Lib : 1807 
+ROM_CODE: 809    
+
+## Release Date:  2018/06/22
+
+## Function & Feature Update
+1. Documents updating: 
+ 1.1 OPL1000-WIFI-BLE-API-guide: v1.0.1.23, WIFI part APIs are updated.  
+ 1.2 OPL1000-AT-instruction-set-and-examples: R05-V05, several AT commands are updated.  
+2. Example codes updating:
+ 2.1 hello_world example, enable debug UART input and output operation.    
+3. Tool version information:
+ 3.1 download tool: v0.17. Add patch lib version reading function.    
+ 3.2 pin-mux tool: v0.5. No change since v1.0.1.19    
+4. Support patch lib version reading through APS UART port by CLI command "at+gmr"
+5. SPI0 Flash access throughput is improved 3 times for both Standard and Quad mode.   
+6. Provide "Adaptive DTIM" API calling interface 
+
+## Bug Fix List 
+1. fixed several bugs in AT command implementation, include AT+SLEEP,AT+WIFIMACCFG,AT+CWLAPOPT,AT+CIPSTATUS etc. 
+2. fix a bug in auto connect mode.
+
+## Notes List 
+1. v1.0.1.22 version is skipped. 
+2. More examples such as mDNS, MQTT, power saving development are on-going. 
+
+*****
+
+## Release Version:
+SDK Package: 1.0.1.21
+Patch_Lib : 1751 
+ROM_CODE: 809    
+
+## Release Date:  2018/06/15
+
+## Function & Feature Update
+1. Documents updating: 
+ 1.1 OPL1000-WIFI-BLE-API-guide: v1.0.1.21, two WIFI APIs are updated.  
+2. Add 3 new documents: 
+ 2.1 OPL1000-WiFi-Interoperability-Results: OPL1000 WIFI Interoperability test result summary   
+ 2.2 OPL1000-Flash-User-Guide: OPL1000 Flash introduction and use guide 
+ 2.3 OPL1000-Adaptive-DTIM-Solution-Guide: OPL1000 adaptive DTIM introduction and use guide    
+3. Example codes updating:
+ 3.1 Enable internal module log output for several examples, such as wpa2_station, http_request etc. This helps user to know more detailed information.    
+ 3.2 Add a new protocol example SNTP which show how to implement SNTP function by socket communication method. 
+4. Tool version information:
+ 4.1 download tool: v0.16. No change since v1.0.1.19     
+ 4.2 pin-mux tool: v0.5. No change since v1.0.1.19    
+5. Support RF power-off function for power saving feature
+
+## Bug Fix List 
+1. fixed several bugs in AT command implementation, include AT+CWLAP,AT+BLEGATTSSETATTR and AT+CWJAP. 
+2. fix a bug in RSSI report.
+
+## Notes List 
+1. More protocol examples such as mDNS, MQTT development are on-going. 
+
+*****
+
+## Release Version:
 SDK Package: 1.0.1.20
 Patch_Lib : 1731 
 ROM_CODE: 809    

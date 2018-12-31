@@ -18,6 +18,9 @@
 
 #define FLAG_OF_CBS_READ_WRITE_INFO
 
+#define WIFIS_EID_RSN		48
+#define WIFIS_EID_VENDOR_SPECIFIC		221
+#define WPAS_IE_VENDOR_TYPE		0x0050f201
 /**
  * @brief Attribute write data type from the client
  */
@@ -98,7 +101,7 @@ typedef enum
 #define STA_INFO_MAX_MANUF_NAME_SIZE   32
 
 /* WIFI STA configuration */
-#define WIFI_MAX_SKIP_DTIM_PERIODS      10
+#define WIFI_MAX_SKIP_DTIM_PERIODS      255
 
 typedef enum {   
     E_WIFI_PARAM_MAC_ADDRESS=0,    
@@ -118,7 +121,11 @@ typedef enum {
 #define AUTO_CONNECT_MANUAL  2  //Internal use, for compatible Auto and Manual mode
 
 #define AUTO_CONNECT_REASON_CODE_FAILED   200
+#define CONNECT_AP_REASON_CODE_NOT_FOUND     201
+#define CONNECT_AP_REASON_CODE_TIMEOUT       202
 
+#define SET_BIT(x,n) ((x)|=(1<<(n)))
+#define CHK_BIT(x,n) (((x)&(1<<(n)))!=0)
 typedef struct
 {
     bool            free_ocpy;                         //scan info buffer is free or occupied, 0:free, 1:occupied
@@ -195,6 +202,15 @@ typedef struct
     u8     max_save_num;
 } MwFimAutoConnectCFG_t;
 
+typedef struct
+{
+    u8 hap_en;
+    int hap_index;
+    int hap_final_index;
+    int hap_bitvector;
+    char hap_ssid[IEEE80211_MAX_SSID_LEN+1];
+    auto_conn_info_t *hap_ap_info;    
+}hap_control_t;
 typedef int (*wifi_sta_join_fast_fp_t)(u8 ap_index);
 typedef auto_connect_cfg_t * (*wifi_get_ac_result_fp_t)(void);
 typedef int (*wifi_set_sta_cfg_req_fp_t)(u8 idx, u8 *value);
@@ -238,5 +254,8 @@ u8 set_auto_connect_info(u8 idx, auto_conn_info_t *info);
 void wifi_sta_info_init(void);
 int send_port_security_done_event(void);
 
+hap_control_t *get_hap_control_struct(void);
+void wifi_sta_join_for_hiddenap(void);
+void hiddenap_complete(void);
 #endif  //__CONTROLLER_WIFI_COM_PATCH_H__
 
