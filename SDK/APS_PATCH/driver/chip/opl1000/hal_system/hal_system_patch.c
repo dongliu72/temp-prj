@@ -39,6 +39,9 @@ Head Block of The File
 #include "hal_spi.h"
 #include "hal_i2c.h"
 #include "hal_dbg_uart.h"
+#include "hal_pin.h"
+#include "hal_pin_def.h"
+#include "hal_pin_config_patch.h"
 
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
 #define AOS             ((S_Aos_Reg_t *) AOS_BASE)
@@ -55,6 +58,9 @@ Head Block of The File
 #define AOS_RET_SF_VOL_0P86          (0x8 << AOS_RET_SF_VOL_POS)
 #define AOS_RET_SF_VOL_1P20          (0xF << AOS_RET_SF_VOL_POS)
 
+
+//0x134
+
 #define AOS_APS_CLK_EN_I2C_PCLK      (1<<5)
 #define AOS_APS_CLK_EN_TMR_0_PCLK    (1<<6)
 #define AOS_APS_CLK_EN_TMR_1_PCLK    (1<<7)
@@ -65,10 +71,19 @@ Head Block of The File
 #define AOS_APS_CLK_EN_UART_0_PCLK   (1<<13)
 #define AOS_APS_CLK_EN_UART_1_PCLK   (1<<14)
 #define AOS_APS_CLK_EN_DBG_UART_PCLK (1<<15)
+#define AOS_APS_CLK_EN_OTP_PCLK      (1<<16)
+#define AOS_APS_CLK_EN_DMA_HCLK      (1<<18)
+#define AOS_APS_CLK_EN_SCRT_HCLK     (1<<24)
 #define AOS_APS_CLK_EN_PWM_CLK       (1<<26)
 #define AOS_APS_CLK_EN_JTAG_HCLK     (1<<28)
 #define AOS_APS_CLK_EN_WDT_INTERNAL  (1<<30)
+
+
+
 #define WDT_TIMEOUT_SECS            10
+
+
+
 #define STRAP_NORMAL_MODE       0xA
 
 /********************************************
@@ -195,13 +210,13 @@ Declaration of Global Variables & Functions
 // Sec 4: declaration of global  variable
 T_Hal_Sys_DisableClock Hal_Sys_DisableClock;
 
+
 // Sec 5: declaration of global function prototype
 /* Power relative */
 
 /* Sleep Mode relative */
 
 /* Pin-Mux relative*/
-RET_DATA T_Hal_SysPinMuxM3UartInit   Hal_SysPinMuxM3UartInit;
 RET_DATA T_Hal_SysPinMuxM3UartSwitch Hal_SysPinMuxM3UartSwitch;
 
 /* Ret RAM relative*/
@@ -303,141 +318,30 @@ uint32_t Hal_Sys_MsqClkTreeSetup_patch(E_MsqClkTreeSrc_t eClkTreeSrc, uint8_t u8
 *************************************************************************/
 void Hal_SysPinMuxAppInit_patch(void)
 {
-    volatile uint32_t tmp;
-
-    Hal_SysPinMuxM3UartInit();
-
-// SPI0 standard mode
-    // IO12(CS), IO13(CLK), IO14(MOSI), IO15(MISO)
-    // output source
-    tmp = AOS->RG_PDI_SRC_IO_B;
-    tmp &= ~(((uint32_t)0xF << 28) | (0xF << 24) | (0xF << 20) | (0xF << 16));
-    tmp |= ((0x0 << 28) | (0x0 << 24) | (0x0 << 20) | (0x0 << 16));
-    AOS->RG_PDI_SRC_IO_B = tmp;
-    // input IO
-    tmp = AOS->RG_PTS_INMUX_C;
-    tmp &= ~((0xF << 4) | (0xF << 0));
-    tmp |= ((0x0 << 4) | (0x0 << 0));
-    AOS->RG_PTS_INMUX_C = tmp;
-
-    // input Enable
-    tmp = AOS->RG_PD_IE;
-    tmp |= ((0x1 << 15) | (0x1 << 14) | (0x1 << 13) | (0x1 << 12));
-    AOS->RG_PD_IE = tmp;
-
-    // pull-up / pull-down
-    tmp = AOS->RG_PD_PE;
-    tmp &= ~((0x1 << 15) | (0x1 << 14) | (0x1 << 13) | (0x1 << 12));
-    AOS->RG_PD_PE = tmp;
-
-    // function pin
-    tmp = AOS->RG_PDOC_MODE;
-    tmp |= ((0x1 << 15) | (0x1 << 14) | (0x1 << 13) | (0x1 << 12));
-    AOS->RG_PDOC_MODE = tmp;
-
-    tmp = AOS->RG_PDOV_MODE;
-    tmp |= ((0x1 << 15) | (0x1 << 14) | (0x1 << 13) | (0x1 << 12));
-    AOS->RG_PDOV_MODE = tmp;
-
-// MSQ_dbg_uart
-    // IO16(RX), IO17(TX)
-    // output source
-    tmp = AOS->RG_PDI_SRC_IO_C;
-    tmp &= ~((0xF << 4) | (0xF << 0));
-    tmp |= ((0xB << 4) | (0xD << 0));
-    AOS->RG_PDI_SRC_IO_C = tmp;
-    // input IO
-    tmp = AOS->RG_PTS_INMUX_A;
-    tmp &= ~(0xF << 20);
-    tmp |= (0x8 << 20);
-    AOS->RG_PTS_INMUX_A = tmp;
-
-    // input Enable
-    tmp = AOS->RG_PD_IE;
-    tmp |= ((0x1 << 17) | (0x1 << 16));
-    AOS->RG_PD_IE = tmp;
-
-    // pull-up / pull-down
-    tmp = AOS->RG_PD_PE;
-    tmp &= ~(0x1 << 17);
-    tmp |= (0x1 << 16);
-    AOS->RG_PD_PE = tmp;
-
-    // function pin
-    tmp = AOS->RG_PDOC_MODE;
-    tmp |= ((0x1 << 17) | (0x1 << 16));
-    AOS->RG_PDOC_MODE = tmp;
-
-    tmp = AOS->RG_PDOV_MODE;
-    tmp |= ((0x1 << 17) | (0x1 << 16));
-    AOS->RG_PDOV_MODE = tmp;
-
-// M0 SWD
-    // IO18(CLK), IO19(DAT)
-    // output source
-    tmp = AOS->RG_PDI_SRC_IO_C;
-    tmp &= ~((0xF << 12) | (0xF << 8));
-    tmp |= ((0x9 << 12) | (0xD << 8));
-    AOS->RG_PDI_SRC_IO_C = tmp;
-    // input IO
-    tmp = AOS->RG_PTS_INMUX_B;
-    tmp &= ~((0xF << 24) | (0xF << 20));
-    tmp |= ((0x9 << 24) | (0x9 << 20));
-    AOS->RG_PTS_INMUX_B = tmp;
-
-    // input Enable
-    tmp = AOS->RG_PD_IE;
-    tmp |= ((0x1 << 19) | (0x1 << 18));
-    AOS->RG_PD_IE = tmp;
-
-    // pull-up / pull-down
-    tmp = AOS->RG_PD_PE;
-    tmp &= ~((0x1 << 19) | (0x1 << 18));
-    AOS->RG_PD_PE = tmp;
-
-    // function pin
-    tmp = AOS->RG_PDOC_MODE;
-    tmp |= ((0x1 << 19) | (0x1 << 18));
-    AOS->RG_PDOC_MODE = tmp;
-
-    tmp = AOS->RG_PDOV_MODE;
-    tmp |= ((0x1 << 19) | (0x1 << 18));
-    AOS->RG_PDOV_MODE = tmp;
-
-// M3 SWD
-    // IO20(DAT), IO21(CLK)
-    // output source
-    tmp = AOS->RG_PDI_SRC_IO_C;
-    tmp &= ~((0xF << 20) | (0xF << 16));
-    tmp |= ((0xD << 20) | (0x8 << 16));
-    AOS->RG_PDI_SRC_IO_C = tmp;
-    // input IO
-    tmp = AOS->RG_PTS_INMUX_B;
-    tmp &= ~((0xF << 16) | (0xF << 12));
-    tmp |= ((0xA << 16) | (0xA << 12));
-    AOS->RG_PTS_INMUX_B = tmp;
-
-    // input Enable
-    tmp = AOS->RG_PD_IE;
-    tmp |= ((0x1 << 21) | (0x1 << 20));
-    AOS->RG_PD_IE = tmp;
-
-    // pull-up / pull-down
-    tmp = AOS->RG_PD_PE;
-    tmp &= ~((0x1 << 21) | (0x1 << 20));
-    AOS->RG_PD_PE = tmp;
-
-    // function pin
-    tmp = AOS->RG_PDOC_MODE;
-    tmp |= ((0x1 << 21) | (0x1 << 20));
-    AOS->RG_PDOC_MODE = tmp;
-
-    tmp = AOS->RG_PDOV_MODE;
-    tmp |= ((0x1 << 21) | (0x1 << 20));
-    AOS->RG_PDOV_MODE = tmp;
-
-    // M3 SWD enable
-    Hal_Sys_SwDebugEn(0x1);
+    Hal_Pin_ConfigSet(0, HAL_PIN_TYPE_PATCH_IO_0, HAL_PIN_DRIVING_PATCH_IO_0);
+    Hal_Pin_ConfigSet(1, HAL_PIN_TYPE_PATCH_IO_1, HAL_PIN_DRIVING_PATCH_IO_1);
+    Hal_Pin_ConfigSet(2, HAL_PIN_TYPE_PATCH_IO_2, HAL_PIN_DRIVING_PATCH_IO_2);
+    Hal_Pin_ConfigSet(3, HAL_PIN_TYPE_PATCH_IO_3, HAL_PIN_DRIVING_PATCH_IO_3);
+    Hal_Pin_ConfigSet(4, HAL_PIN_TYPE_PATCH_IO_4, HAL_PIN_DRIVING_PATCH_IO_4);
+    Hal_Pin_ConfigSet(5, HAL_PIN_TYPE_PATCH_IO_5, HAL_PIN_DRIVING_PATCH_IO_5);
+    Hal_Pin_ConfigSet(6, HAL_PIN_TYPE_PATCH_IO_6, HAL_PIN_DRIVING_PATCH_IO_6);
+    Hal_Pin_ConfigSet(7, HAL_PIN_TYPE_PATCH_IO_7, HAL_PIN_DRIVING_PATCH_IO_7);
+    Hal_Pin_ConfigSet(8, HAL_PIN_TYPE_PATCH_IO_8, HAL_PIN_DRIVING_PATCH_IO_8);
+    Hal_Pin_ConfigSet(9, HAL_PIN_TYPE_PATCH_IO_9, HAL_PIN_DRIVING_PATCH_IO_9);
+    Hal_Pin_ConfigSet(10, HAL_PIN_TYPE_PATCH_IO_10, HAL_PIN_DRIVING_PATCH_IO_10);
+    Hal_Pin_ConfigSet(11, HAL_PIN_TYPE_PATCH_IO_11, HAL_PIN_DRIVING_PATCH_IO_11);
+    Hal_Pin_ConfigSet(12, HAL_PIN_TYPE_PATCH_IO_12, HAL_PIN_DRIVING_PATCH_IO_12);
+    Hal_Pin_ConfigSet(13, HAL_PIN_TYPE_PATCH_IO_13, HAL_PIN_DRIVING_PATCH_IO_13);
+    Hal_Pin_ConfigSet(14, HAL_PIN_TYPE_PATCH_IO_14, HAL_PIN_DRIVING_PATCH_IO_14);
+    Hal_Pin_ConfigSet(15, HAL_PIN_TYPE_PATCH_IO_15, HAL_PIN_DRIVING_PATCH_IO_15);
+    Hal_Pin_ConfigSet(16, HAL_PIN_TYPE_PATCH_IO_16, HAL_PIN_DRIVING_PATCH_IO_16);
+    Hal_Pin_ConfigSet(17, HAL_PIN_TYPE_PATCH_IO_17, HAL_PIN_DRIVING_PATCH_IO_17);
+    Hal_Pin_ConfigSet(18, HAL_PIN_TYPE_PATCH_IO_18, HAL_PIN_DRIVING_PATCH_IO_18);
+    Hal_Pin_ConfigSet(19, HAL_PIN_TYPE_PATCH_IO_19, HAL_PIN_DRIVING_PATCH_IO_19);
+    Hal_Pin_ConfigSet(20, HAL_PIN_TYPE_PATCH_IO_20, HAL_PIN_DRIVING_PATCH_IO_20);
+    Hal_Pin_ConfigSet(21, HAL_PIN_TYPE_PATCH_IO_21, HAL_PIN_DRIVING_PATCH_IO_21);
+    Hal_Pin_ConfigSet(22, HAL_PIN_TYPE_PATCH_IO_22, HAL_PIN_DRIVING_PATCH_IO_22);
+    Hal_Pin_ConfigSet(23, HAL_PIN_TYPE_PATCH_IO_23, HAL_PIN_DRIVING_PATCH_IO_23);
 }
 
 /*************************************************************************
@@ -464,10 +368,10 @@ void Hal_SysPinMuxDownloadInit_patch(void)
 
 /*************************************************************************
 * FUNCTION:
-*  Hal_SysPinMuxM3UartInit
+*  Hal_SysPinMuxSpiFlashInit
 *
 * DESCRIPTION:
-*   1. Pin-Mux for initial stage
+*   1. Pin-Mux initial for SPI flash
 *   2. Related reg.: AOS 0x090 ~ 0x0DC
 * CALLS
 *
@@ -478,151 +382,14 @@ void Hal_SysPinMuxDownloadInit_patch(void)
 * GLOBALS AFFECTED
 *
 *************************************************************************/
-void Hal_SysPinMuxM3UartInit_impl(void)
+void Hal_SysPinMuxSpiFlashInit_patch(void)
 {
-    volatile uint32_t tmp;
-
-// UART1
-    // IO0(TX), IO1(RX), IO6(RTS), IO7(CTS)
-    // output source
-    tmp = AOS->RG_PDI_SRC_IO_A;
-    tmp &= ~(((uint32_t)0xF << 28) | (0xF << 24) | (0xF << 4) | (0xF << 0));
-    tmp |= (((uint32_t)0xD << 28) | (0x3 << 24) | (0xD << 4) | (0x4 << 0));
-    AOS->RG_PDI_SRC_IO_A = tmp;
-    // input IO
-    tmp = AOS->RG_PTS_INMUX_A;
-    tmp &= ~((0xF << 12) | (0xF << 8));
-    tmp |= ((0x0 << 12) | (0x0 << 8));
-    AOS->RG_PTS_INMUX_A = tmp;
-
-    // input Enable
-    tmp = AOS->RG_PD_IE;
-    tmp |= ((0x1 << 7) | (0x1 << 6) | (0x1 << 1) | (0x1 << 0));
-    AOS->RG_PD_IE = tmp;
-
-    // pull-up / pull-down
-    tmp = AOS->RG_PD_PE;
-    tmp &= ~((0x1 << 6) | (0x1 << 0));
-    tmp |= ((0x1 << 7) | (0x1 << 1));
-    AOS->RG_PD_PE = tmp;
-
-    // function pin
-    tmp = AOS->RG_PDOC_MODE;
-    tmp |= ((0x1 << 7) | (0x1 << 6) | (0x1 << 1) | (0x1 << 0));
-    AOS->RG_PDOC_MODE = tmp;
-
-    tmp = AOS->RG_PDOV_MODE;
-    tmp |= ((0x1 << 7) | (0x1 << 6) | (0x1 << 1) | (0x1 << 0));
-    AOS->RG_PDOV_MODE = tmp;
-
-#if (SYS_PINMUX_TYPE == SYS_PINMUX_OPTION_1)
-// APS_dbg_uart
-    // IO8(TX), IO9(RX)
-    // output source
-    tmp = AOS->RG_PDI_SRC_IO_B;
-    tmp &= ~((0xF << 4) | (0xF << 0));
-    tmp |= ((0xD << 4) | (0xA << 0));
-    AOS->RG_PDI_SRC_IO_B = tmp;
-    // input IO
-    tmp = AOS->RG_PTS_INMUX_A;
-    tmp &= ~(0xF << 16);
-    tmp |= (0x4 << 16);
-    AOS->RG_PTS_INMUX_A = tmp;
-
-    // input Enable
-    tmp = AOS->RG_PD_IE;
-    tmp |= ((0x1 << 9) | (0x1 << 8));
-    AOS->RG_PD_IE = tmp;
-
-    // pull-up / pull-down
-    tmp = AOS->RG_PD_PE;
-    tmp &= ~(0x1 << 8);
-    tmp |= (0x1 << 9);
-    AOS->RG_PD_PE = tmp;
-
-    // function pin
-    tmp = AOS->RG_PDOC_MODE;
-    tmp |= ((0x1 << 9) | (0x1 << 8));
-    AOS->RG_PDOC_MODE = tmp;
-
-    tmp = AOS->RG_PDOV_MODE;
-    tmp |= ((0x1 << 9) | (0x1 << 8));
-    AOS->RG_PDOV_MODE = tmp;
-
-#elif (SYS_PINMUX_TYPE == SYS_PINMUX_OPTION_2)
-// APS_dbg_uart
-    // IO4(TX), IO5(RX)
-    // output source
-    tmp = AOS->RG_PDI_SRC_IO_A;
-    tmp &= ~((0xF << 20) | (0xF << 16));
-    tmp |= ((0xD << 20) | (0xA << 16));
-    AOS->RG_PDI_SRC_IO_A = tmp;
-    // input IO
-    tmp = AOS->RG_PTS_INMUX_A;
-    tmp &= ~(0xF << 16);
-    tmp |= (0x2 << 16);
-    AOS->RG_PTS_INMUX_A = tmp;
-
-    // input Enable
-    tmp = AOS->RG_PD_IE;
-    tmp |= ((0x1 << 5) | (0x1 << 4));
-    AOS->RG_PD_IE = tmp;
-
-    // pull-up / pull-down
-    tmp = AOS->RG_PD_PE;
-    tmp &= ~(0x1 << 4);
-    tmp |= (0x1 << 5);
-    AOS->RG_PD_PE = tmp;
-
-    // function pin
-    tmp = AOS->RG_PDOC_MODE;
-    tmp |= ((0x1 << 5) | (0x1 << 4));
-    AOS->RG_PDOC_MODE = tmp;
-
-    tmp = AOS->RG_PDOV_MODE;
-    tmp |= ((0x1 << 5) | (0x1 << 4));
-    AOS->RG_PDOV_MODE = tmp;
-
-// UART0
-    // IO2(TX), IO3(RX), IO8(CTS), IO9(RTS)
-    // output source
-    // IO2, IO3
-    tmp = AOS->RG_PDI_SRC_IO_A;
-    tmp &= ~((0xF << 12) | (0xF << 8));
-    tmp |= ((0xD << 12) | (0x3 << 8));
-    AOS->RG_PDI_SRC_IO_A = tmp;
-    // IO8, IO9
-    tmp = AOS->RG_PDI_SRC_IO_B;
-    tmp &= ~((0xF << 4) | (0xF << 0));
-    tmp |= ((0x3 << 4) | (0xD << 0));
-    AOS->RG_PDI_SRC_IO_B = tmp;
-    // input IO
-    tmp = AOS->RG_PTS_INMUX_A;
-    tmp &= ~((0xF << 4) | (0xF << 0));
-    tmp |= ((0x0 << 4) | (0x1 << 0));
-    AOS->RG_PTS_INMUX_A = tmp;
-
-    // input Enable
-    tmp = AOS->RG_PD_IE;
-    tmp |= ((0x1 << 9) | (0x1 << 8) | (0x1 << 3) | (0x1 << 2));
-    AOS->RG_PD_IE = tmp;
-
-    // pull-up / pull-down
-    tmp = AOS->RG_PD_PE;
-    tmp &= ~((0x1 << 9) | (0x1 << 2));
-    tmp |= ((0x1 << 8) | (0x1 << 3));
-    AOS->RG_PD_PE = tmp;
-
-    // function pin
-    tmp = AOS->RG_PDOC_MODE;
-    tmp |= ((0x1 << 9) | (0x1 << 8) | (0x1 << 3) | (0x1 << 2));
-    AOS->RG_PDOC_MODE = tmp;
-
-    tmp = AOS->RG_PDOV_MODE;
-    tmp |= ((0x1 << 9) | (0x1 << 8) | (0x1 << 3) | (0x1 << 2));
-    AOS->RG_PDOV_MODE = tmp;
-
-#endif
+// SPI0 standard mode
+    // IO12(CS), IO13(CLK), IO14(MOSI), IO15(MISO)
+    Hal_Pin_ConfigSet(12, PIN_TYPE_SPI0_CS, PIN_DRIVING_FLOAT);
+    Hal_Pin_ConfigSet(13, PIN_TYPE_SPI0_CLK, PIN_DRIVING_FLOAT);
+    Hal_Pin_ConfigSet(14, PIN_TYPE_SPI0_IO_0, PIN_DRIVING_FLOAT);
+    Hal_Pin_ConfigSet(15, PIN_TYPE_SPI0_IO_1, PIN_DRIVING_FLOAT);
 }
 
 /*************************************************************************
@@ -643,116 +410,15 @@ void Hal_SysPinMuxM3UartInit_impl(void)
 *************************************************************************/
 void Hal_SysPinMuxM3UartSwitch_impl(void)
 {
-    volatile uint32_t tmp;
-
 // APS_dbg_uart
     // IO0(TX), IO1(RX)
-    // output source
-    tmp = AOS->RG_PDI_SRC_IO_A;
-    tmp &= ~((0xF << 4) | (0xF << 0));
-    tmp |= ((0xD << 4) | (0xA << 0));
-    AOS->RG_PDI_SRC_IO_A = tmp;
-    // input IO
-    tmp = AOS->RG_PTS_INMUX_A;
-    tmp &= ~(0xF << 16);
-    tmp |= (0x0 << 16);
-    AOS->RG_PTS_INMUX_A = tmp;
-
-    // input Enable
-    tmp = AOS->RG_PD_IE;
-    tmp |= ((0x1 << 1) | (0x1 << 0));
-    AOS->RG_PD_IE = tmp;
-
-    // pull-up / pull-down
-    tmp = AOS->RG_PD_PE;
-    tmp &= ~(0x1 << 0);
-    tmp |= (0x1 << 1);
-    AOS->RG_PD_PE = tmp;
-
-    // function pin
-    tmp = AOS->RG_PDOC_MODE;
-    tmp |= ((0x1 << 1) | (0x1 << 0));
-    AOS->RG_PDOC_MODE = tmp;
-
-    tmp = AOS->RG_PDOV_MODE;
-    tmp |= ((0x1 << 1) | (0x1 << 0));
-    AOS->RG_PDOV_MODE = tmp;
-
-#if (SYS_PINMUX_TYPE == SYS_PINMUX_OPTION_1)
+    Hal_Pin_ConfigSet(0, PIN_TYPE_UART_APS_TX, PIN_DRIVING_FLOAT);
+    Hal_Pin_ConfigSet(1, PIN_TYPE_UART_APS_RX, PIN_DRIVING_FLOAT);
+    
 // UART1
-    // IO6(RTS), IO7(CTS), IO8(TX), IO9(RX)
-    // output source
-    // IO6, IO7
-    tmp = AOS->RG_PDI_SRC_IO_A;
-    tmp &= ~(((uint32_t)0xF << 28) | (0xF << 24));
-    tmp |= (((uint32_t)0xD << 28) | (0x3 << 24));
-    AOS->RG_PDI_SRC_IO_A = tmp;
-    // IO8, IO9
-    tmp = AOS->RG_PDI_SRC_IO_B;
-    tmp &= ~((0xF << 4) | (0xF << 0));
-    tmp |= ((0xD << 4) | (0x4 << 0));
-    AOS->RG_PDI_SRC_IO_B = tmp;
-    // input IO
-    tmp = AOS->RG_PTS_INMUX_A;
-    tmp &= ~((0xF << 12) | (0xF << 8));
-    tmp |= ((0x2 << 12) | (0x0 << 8));
-    AOS->RG_PTS_INMUX_A = tmp;
-
-    // input Enable
-    tmp = AOS->RG_PD_IE;
-    tmp |= ((0x1 << 9) | (0x1 << 8) | (0x1 << 7) | (0x1 << 6));
-    AOS->RG_PD_IE = tmp;
-
-    // pull-up / pull-down
-    tmp = AOS->RG_PD_PE;
-    tmp &= ~((0x1 << 8) | (0x1 << 6));
-    tmp |= ((0x1 << 9) | (0x1 << 7));
-    AOS->RG_PD_PE = tmp;
-
-    // function pin
-    tmp = AOS->RG_PDOC_MODE;
-    tmp |= ((0x1 << 9) | (0x1 << 8) | (0x1 << 7) | (0x1 << 6));
-    AOS->RG_PDOC_MODE = tmp;
-
-    tmp = AOS->RG_PDOV_MODE;
-    tmp |= ((0x1 << 9) | (0x1 << 8) | (0x1 << 7) | (0x1 << 6));
-    AOS->RG_PDOV_MODE = tmp;
-
-#elif (SYS_PINMUX_TYPE == SYS_PINMUX_OPTION_2)
-// UART1
-    // IO4(TX), IO5(RX), IO6(RTS), IO7(CTS)
-    // output source
-    tmp = AOS->RG_PDI_SRC_IO_A;
-    tmp &= ~(((uint32_t)0xF << 28) | (0xF << 24) | (0xF << 20) | (0xF << 16));
-    tmp |= (((uint32_t)0xD << 28) | (0x3 << 24) | (0xD << 20) | (0x3 << 16));
-    AOS->RG_PDI_SRC_IO_A = tmp;
-    // input IO
-    tmp = AOS->RG_PTS_INMUX_A;
-    tmp &= ~((0xF << 12) | (0xF << 8));
-    tmp |= ((0x1 << 12) | (0x0 << 8));
-    AOS->RG_PTS_INMUX_A = tmp;
-
-    // input Enable
-    tmp = AOS->RG_PD_IE;
-    tmp |= ((0x1 << 7) | (0x1 << 6) | (0x1 << 5) | (0x1 << 4));
-    AOS->RG_PD_IE = tmp;
-
-    // pull-up / pull-down
-    tmp = AOS->RG_PD_PE;
-    tmp &= ~((0x1 << 6) | (0x1 << 4));
-    tmp |= ((0x1 << 7) | (0x1 << 5));
-    AOS->RG_PD_PE = tmp;
-
-    // function pin
-    tmp = AOS->RG_PDOC_MODE;
-    tmp |= ((0x1 << 7) | (0x1 << 6) | (0x1 << 5) | (0x1 << 4));
-    AOS->RG_PDOC_MODE = tmp;
-
-    tmp = AOS->RG_PDOV_MODE;
-    tmp |= ((0x1 << 7) | (0x1 << 6) | (0x1 << 5) | (0x1 << 4));
-    AOS->RG_PDOV_MODE = tmp;
-
-#endif
+    // IO8(TX), IO9(RX)
+    Hal_Pin_ConfigSet(8, PIN_TYPE_UART1_TX, PIN_DRIVING_FLOAT);
+    Hal_Pin_ConfigSet(9, PIN_TYPE_UART1_RX, PIN_DRIVING_HIGH);
 }
 
 /*************************************************************************
@@ -773,25 +439,54 @@ void Hal_SysPinMuxM3UartSwitch_impl(void)
 void Hal_Sys_ApsClkChangeApply_patch(void)
 {
     // FreeRTOS, update system tick.
+    // FIXME: Need used some define...
     SysTick->LOAD =( SystemCoreClockGet()/1000 ) - 1;
 
+    // Modules (ex. I2c, SPI, PWM...)
+    // debug UART
     if (AOS->R_M3CLK_SEL & AOS_APS_CLK_EN_DBG_UART_PCLK)
         Hal_DbgUart_BaudRateSet( Hal_DbgUart_BaudRateGet() );
+
+    // SPI
     if (AOS->R_M3CLK_SEL & AOS_APS_CLK_EN_SPI_0_PCLK)
         Hal_Spi_BaudRateSet(SPI_IDX_0, Hal_Spi_BaudRateGet( SPI_IDX_0 ) );
     if (AOS->R_M3CLK_SEL & AOS_APS_CLK_EN_SPI_1_PCLK)
         Hal_Spi_BaudRateSet(SPI_IDX_1, Hal_Spi_BaudRateGet( SPI_IDX_1 ) );
     if (AOS->R_M3CLK_SEL & AOS_APS_CLK_EN_SPI_2_PCLK)
         Hal_Spi_BaudRateSet(SPI_IDX_2, Hal_Spi_BaudRateGet( SPI_IDX_2 ) );
+    
+    // I2C
     if (AOS->R_M3CLK_SEL & AOS_APS_CLK_EN_I2C_PCLK)
         Hal_I2c_SpeedSet( Hal_I2c_SpeedGet() );
+    
     // WDT
     if (AOS->R_M3CLK_SEL & AOS_APS_CLK_EN_WDT_PCLK)
-    Hal_Wdt_Feed(WDT_TIMEOUT_SECS * SystemCoreClockGet());
+        Hal_Wdt_Feed(WDT_TIMEOUT_SECS * SystemCoreClockGet());
+    
 }
+
+
+/**
+ * @brief To gate perpherials clock.
+ *        When enable perpherial, API needs to turn on the clock.
+ *
+ * Peripherals:
+ *    - I2C
+ *    - TMR 0/1
+ *    - WDT
+ *    - SPI 0/1/2
+ *    - UART 0/1
+ *    - DbgUart
+ *    - Pwm
+ *    - Jtag
+ *    - OTP
+ *    - DMA
+ *    - SCRT
+ */
 void Hal_Sys_DisableClock_impl(void)
 {
     uint32_t u32DisClk;
+    
     u32DisClk = AOS_APS_CLK_EN_I2C_PCLK |
                 AOS_APS_CLK_EN_TMR_0_PCLK |
                 AOS_APS_CLK_EN_TMR_1_PCLK |
@@ -803,8 +498,15 @@ void Hal_Sys_DisableClock_impl(void)
                 AOS_APS_CLK_EN_UART_1_PCLK |
                 AOS_APS_CLK_EN_DBG_UART_PCLK |
                 AOS_APS_CLK_EN_PWM_CLK |
-                AOS_APS_CLK_EN_WDT_INTERNAL;
+                AOS_APS_CLK_EN_WDT_INTERNAL |
+                AOS_APS_CLK_EN_OTP_PCLK |
+                AOS_APS_CLK_EN_DMA_HCLK | 
+                AOS_APS_CLK_EN_SCRT_HCLK;
+    
     if (Hal_Sys_StrapModeRead() == STRAP_NORMAL_MODE)
         u32DisClk |= AOS_APS_CLK_EN_JTAG_HCLK;
+    
     AOS->R_M3CLK_SEL = AOS->R_M3CLK_SEL & ~u32DisClk;    
+    
 }
+

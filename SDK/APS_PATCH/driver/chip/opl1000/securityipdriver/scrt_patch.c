@@ -90,6 +90,10 @@
     #define SCRT_ASSERT(...)
 #endif
 
+#define SCRT_SYS_CLK_REG    0x40001134
+#define SCRT_OTP_CLK_MSK    (1 << 16)
+#define SCRT_IP_CLK_MSK     (1 << 24)
+
 
 typedef enum
 {
@@ -119,6 +123,7 @@ typedef enum
     SCRT_TOKEN_ID_HMAC_SHA_1 = 0xE0D0,
     SCRT_TOKEN_ID_AES_ECB = 0xE0E0,
     SCRT_TOKEN_ID_AES_CMAC = 0xE0F0,
+    SCRT_TOKEN_ID_SHA = 0xE100,
 
     SCRT_TOKEN_ID_MAX = 0xEFFF
 } T_ScrtTokenId;
@@ -177,6 +182,11 @@ extern RET_DATA nl_scrt_key_delete_fp_t nl_scrt_key_delete;
 
 RET_DATA nl_scrt_aes_cmac_fp_t nl_scrt_aes_cmac_get;
 //RET_DATA nl_scrt_hmac_sha_1_step_fp_t nl_scrt_hmac_sha_1_step;
+//RET_DATA nl_scrt_sha_1_fp_t nl_scrt_sha_1;
+//RET_DATA nl_scrt_sha_256_fp_t nl_scrt_sha_256;
+
+RET_DATA nl_scrt_sha_fp_t nl_scrt_sha;
+
 
 extern T_ScrtRes g_tScrtRes[SCRT_MB_IDX_MAX];
 extern osSemaphoreId g_tScrtResSem;
@@ -512,7 +522,7 @@ int nl_scrt_hmac_sha_1_step_patch(uint8_t type, uint32_t total_len, uint8_t *sk,
     uint8_t u8Link = 0;
     #endif
 
-    if(type >= SCRT_MAC_STEP_MAX)
+    if(type >= SCRT_STEP_MAX)
     {
         SCRT_LOGE("[%s %d] invalid type[%d]\n", __func__, __LINE__, type);
         goto done;
@@ -526,7 +536,7 @@ int nl_scrt_hmac_sha_1_step_patch(uint8_t type, uint32_t total_len, uint8_t *sk,
         goto done;
     }
 
-    if(type == SCRT_MAC_STEP_FINAL)
+    if(type == SCRT_STEP_FINAL)
     {
         u32DataLen = in_data_len;
     }
@@ -577,15 +587,15 @@ int nl_scrt_hmac_sha_1_step_patch(uint8_t type, uint32_t total_len, uint8_t *sk,
 
     switch(type)
     {
-    case SCRT_MAC_STEP_NEW:
+    case SCRT_STEP_NEW:
         u8Mode = 0x02;
         break;
 
-    case SCRT_MAC_STEP_CONTINUE:
+    case SCRT_STEP_CONTINUE:
         u8Mode = 0x03;
         break;
 
-    case SCRT_MAC_STEP_FINAL:
+    case SCRT_STEP_FINAL:
         u8Mode = 0x01;
         break;
 
@@ -598,15 +608,15 @@ int nl_scrt_hmac_sha_1_step_patch(uint8_t type, uint32_t total_len, uint8_t *sk,
     u32aBase[6] = word_6;      //key length: 0x08  ;  [3:0] Algorithm  HMAC-SHA-1, 160-bit MAC, block size is 64 Bytes
     u32aBase[7] = 0x00000000;
 
-    if(type == SCRT_MAC_STEP_NEW)
+    if(type == SCRT_STEP_NEW)
     {
         // clear intermediate MAC (word 8 ~ 15)
-        memset((void *)&(u32aBase[8]), 0, SCRT_HMAC_SHA_1_INTER_MAC_LEN);
+        memset((void *)&(u32aBase[8]), 0, SCRT_SHA_1_INTER_MAC_LEN);
     }
     else
     {
         // copy intermediate MAC (word 8 ~ 15)
-        memcpy((void *)&(u32aBase[8]), mac, SCRT_HMAC_SHA_1_INTER_MAC_LEN);
+        memcpy((void *)&(u32aBase[8]), mac, SCRT_SHA_1_INTER_MAC_LEN);
     }
 
     u32aBase[16] = 0x00000000;
@@ -619,7 +629,7 @@ int nl_scrt_hmac_sha_1_step_patch(uint8_t type, uint32_t total_len, uint8_t *sk,
     u32aBase[23] = 0x00000000;
 
     //word 24
-    if(type == SCRT_MAC_STEP_FINAL)
+    if(type == SCRT_STEP_FINAL)
     {
         u32aBase[24] = total_len;
     }
@@ -672,14 +682,14 @@ int nl_scrt_hmac_sha_1_step_patch(uint8_t type, uint32_t total_len, uint8_t *sk,
         #endif
     }
 
-    if(type == SCRT_MAC_STEP_FINAL)
+    if(type == SCRT_STEP_FINAL)
     {
         /* Copy the output MAC data */
-        memcpy((void *)mac, (void *)&(u32aBase[2]), SCRT_HMAC_SHA_1_OUTPUT_LEN);
+        memcpy((void *)mac, (void *)&(u32aBase[2]), SCRT_SHA_1_OUTPUT_LEN);
     }
     else
     {
-        memcpy((void *)mac, (void *)&(u32aBase[2]), SCRT_HMAC_SHA_1_INTER_MAC_LEN);
+        memcpy((void *)mac, (void *)&(u32aBase[2]), SCRT_SHA_1_INTER_MAC_LEN);
     }
 
     *u32aStatus = SCRT_CTRL_READ_MSK(g_tScrtRes[u8ResId].u8MbIdx);
@@ -1204,6 +1214,349 @@ done:
     return status;
 }
 
+int nl_scrt_sha_patch(uint8_t u8Type, uint8_t u8Step, uint32_t u32TotalLen, uint8_t *u8aData, uint32_t u32DataLen, uint8_t u8HasInterMac, uint8_t *u8aMac)
+{
+    int status = 0;
+    volatile uint32_t *u32aBase = NULL;
+    volatile uint32_t *u32aStatus = (uint32_t *)SCRT_STAT_CTRL_ADDR;
+    uint32_t u32Output = 0;
+    uint8_t u8ResId = SCRT_MB_IDX_MAX;
+    uint16_t u16TokenId = 0;
+    uint8_t u8NeedToClr = 0;
+    uint8_t u8Mode = 0;
+    uint8_t u8Alg = 0;
+    uint32_t u32StepSize = 0;
+    uint32_t u32OutputLen = 0;
+
+    #ifdef SCRT_ENABLE_UNLINK
+    uint8_t u8Link = 0;
+    #endif
+
+    if(!u8aMac)
+    {
+        SCRT_LOGE("[%s %d] invalid param\n", __func__, __LINE__);
+        goto done;
+    }
+
+    if((u32DataLen) && (!u8aData))
+    {
+        SCRT_LOGE("[%s %d] invalid data buffer\n", __func__, __LINE__);
+        goto done;
+    }
+
+    switch(u8Type)
+    {
+        case SCRT_TYPE_SHA_1:
+            u8Alg = 1;
+            u32StepSize = SCRT_SHA_1_STEP_SIZE;
+            u32OutputLen = SCRT_SHA_1_OUTPUT_LEN;
+            break;
+    
+        case SCRT_TYPE_SHA_224:
+            u8Alg = 2;
+            u32StepSize = SCRT_SHA_224_STEP_SIZE;
+            u32OutputLen = SCRT_SHA_224_OUTPUT_LEN;
+            break;
+    
+        case SCRT_TYPE_SHA_256:
+            u8Alg = 3;
+            u32StepSize = SCRT_SHA_256_STEP_SIZE;
+            u32OutputLen = SCRT_SHA_256_OUTPUT_LEN;
+            break;
+    
+        case SCRT_TYPE_SHA_384:
+            u8Alg = 4;
+            u32StepSize = SCRT_SHA_384_STEP_SIZE;
+            u32OutputLen = SCRT_SHA_384_OUTPUT_LEN;
+            break;
+    
+        case SCRT_TYPE_SHA_512:
+            u8Alg = 5;
+            u32StepSize = SCRT_SHA_512_STEP_SIZE;
+            u32OutputLen = SCRT_SHA_512_OUTPUT_LEN;
+            break;
+    
+        default:
+            SCRT_LOGE("[%s %d] unknown type[%d]\n", __func__, __LINE__, u8Type);
+            goto done;
+    }
+
+    if(u8Step)
+    {
+        if(u32DataLen > u32StepSize)
+        {
+            SCRT_LOGE("[%s %d] invalid data_len[%u] > [%u]\n", __func__, __LINE__, u32DataLen, u32StepSize);
+            goto done;
+        }
+
+        if(u8HasInterMac)
+        {
+            if(u32DataLen < u32StepSize)
+            {
+                // final
+                u8Mode = 0x01;
+            }
+            else
+            {
+                // continue
+                u8Mode = 0x03;
+            }
+        }
+        else
+        {
+            if(u32DataLen < u32StepSize)
+            {
+                // initial and final
+                u8Mode = 0x00;
+            }
+            else
+            {
+                // initial
+                u8Mode = 0x02;
+            }
+        }
+    }
+    else
+    {
+        // initial and final
+        u8Mode = 0x00;
+    }
+
+    u8ResId = scrt_res_alloc();
+
+    if(u8ResId >= SCRT_MB_IDX_MAX)
+    {
+        SCRT_LOGE("[%s %d] scrt_res_alloc fail\n", __func__, __LINE__);
+        goto done;
+    }
+
+    #ifdef SCRT_PRE_LINK
+    #else
+    // Link: start
+    if(scrt_link(g_tScrtRes[u8ResId].u8MbIdx))
+    {
+        SCRT_LOGE("[%s %d] scrt_link fail\n", __func__, __LINE__);
+        goto done;
+    }
+
+    #ifdef SCRT_ENABLE_UNLINK
+    u8Link = 1;
+    #endif
+    // Link: end
+    #endif
+
+    u16TokenId = SCRT_TOKEN_ID_SHA + g_tScrtRes[u8ResId].u8MbIdx;
+    u32aBase = (volatile uint32_t *)SCRT_BASE_ADDR(g_tScrtRes[u8ResId].u8MbIdx);
+
+    // Hash: start
+    u32aBase[0] = 0x02000000 | u16TokenId;
+    u32aBase[1] = SCRT_ID;
+    u32aBase[2] = u32DataLen;
+    u32aBase[3] = (uint32_t)u8aData;
+    u32aBase[4] = 0x00000000;
+    u32aBase[5] = u32DataLen;
+    u32aBase[6] = ((u8Mode & 0x03) << 4) | (u8Alg & 0x0F);
+    u32aBase[7] = 0x00000000;
+
+    if(u8Mode & 0x01) // continue
+    {
+        // copy intermediate MAC
+        memcpy((void *)&(u32aBase[8]), u8aMac, u32OutputLen);
+    }
+    
+    u32aBase[24] = u32TotalLen;
+    u32aBase[25] = 0x00000000;
+
+    /* Write a word */
+    *u32aStatus = SCRT_CTRL_WRITE_MSK(g_tScrtRes[u8ResId].u8MbIdx);
+    // MAC: end
+
+    // write done and ready to read
+    if(scrt_status_chk(SCRT_STATUS_WRITE_MSK(g_tScrtRes[u8ResId].u8MbIdx) | SCRT_STATUS_READ_MSK(g_tScrtRes[u8ResId].u8MbIdx), 
+                       SCRT_STATUS_READ_MSK(g_tScrtRes[u8ResId].u8MbIdx)))
+    {
+        SCRT_LOGE("[%s %d] scrt_status_chk fail\n", __func__, __LINE__);
+
+        #ifdef SCRT_CHECK
+        SCRT_ASSERT(0);
+        #else
+        goto done;
+        #endif
+    }
+
+    u8NeedToClr = 1;
+
+    // Hash output: start
+    u32Output = u32aBase[0];
+
+    if(u32Output != u16TokenId)
+    {
+        SCRT_LOGE("[%s %d] output token id[%08X] != SCRT_TOKEN_ID_SHA[%08X]\n", __func__, __LINE__, 
+                  u32Output, u16TokenId);
+
+        #ifdef SCRT_CHECK
+        SCRT_ASSERT(0);
+        #else
+        goto done;
+        #endif
+    }
+
+    // intermediate or final mac
+    memcpy((void *)u8aMac, (void *)&(u32aBase[2]), u32OutputLen);
+
+    *u32aStatus = SCRT_CTRL_READ_MSK(g_tScrtRes[u8ResId].u8MbIdx);
+    u8NeedToClr = 0;
+    // Hash output: end
+
+    status = 1;
+
+done:
+    if(u8ResId < SCRT_MB_IDX_MAX)
+    {
+        if(u8NeedToClr)
+        {
+            *u32aStatus = SCRT_CTRL_READ_MSK(g_tScrtRes[u8ResId].u8MbIdx);
+        }
+
+        #ifdef SCRT_ENABLE_UNLINK
+        // Unlink: start
+        if(u8Link)
+        {
+            if(scrt_unlink(g_tScrtRes[u8ResId].u8MbIdx))
+            {
+                SCRT_LOGE("[%s %d] scrt_unlink fail\n", __func__, __LINE__);
+            }
+        }
+        // Unlink: end
+        #endif
+    
+        // free resource
+        scrt_res_free(u8ResId);
+    }
+
+    return status;
+}
+
+void scrt_clk_enable(uint8_t u8Enable, uint32_t u32Msk)
+{
+    volatile uint32_t *pu32Reg = (uint32_t *)SCRT_SYS_CLK_REG;
+    
+    if(u8Enable)
+    {
+        *pu32Reg = *pu32Reg | u32Msk;
+    }
+    else
+    {
+        *pu32Reg = *pu32Reg & ~(u32Msk);
+    }
+
+    return;
+}
+
+int nl_scrt_init_patch(void)
+{
+    int iRet = 0;
+
+    if(scrt_param_init())
+    {
+        SCRT_LOGE("[%s %d] scrt_param_init fail\n", __func__, __LINE__);
+        goto done;
+    }
+
+    if(scrt_sem_create())
+    {
+        SCRT_LOGE("[%s %d] scrt_sem_create fail\n", __func__, __LINE__);
+        goto done;
+    }
+
+    scrt_clk_enable(1, (SCRT_OTP_CLK_MSK | SCRT_IP_CLK_MSK));
+
+    if(scrt_mb_init())
+    {
+        SCRT_LOGE("[%s %d] scrt_mb_init fail\n", __func__, __LINE__);
+        goto done;
+    }
+
+    iRet = 1;
+
+done:
+    scrt_clk_enable(0, (SCRT_OTP_CLK_MSK | SCRT_IP_CLK_MSK));
+    return iRet;
+}
+
+int nl_scrt_otp_status_get_patch(void)
+{
+    int iRet = 0;
+    volatile uint32_t *pu32OtpStatus = NULL;
+
+    scrt_clk_enable(1, SCRT_OTP_CLK_MSK);
+
+    pu32OtpStatus = (uint32_t *)SCRT_OTP_STATUS_ADDR;
+
+    if(*pu32OtpStatus == 0)
+    {
+        SCRT_LOGI("[%s %d] OTP not ready\n", __func__, __LINE__);
+
+        //scrt_clk_enable(0, SCRT_OTP_CLK_MSK);
+        goto done;
+    }
+
+    iRet = 1;
+
+done:
+    return iRet;
+}
+
+uint8_t scrt_res_alloc_patch(void)
+{
+    uint8_t u8Idx = SCRT_MB_IDX_MAX;
+    uint8_t i = 0;
+    uint32_t u32Cnt = 0;
+
+    while(u32Cnt < SCRT_WAIT_RES_MAX_CNT)
+    {
+        if(scrt_res_lock())
+        {
+            SCRT_LOGE("[%s %d] scrt_res_lock fail\n", __func__, __LINE__);
+            break;
+        }
+
+        // reserve SCRT_MB_IDX_0 for M0 usage
+        for(i = SCRT_MB_IDX_1; i < SCRT_MB_IDX_MAX; i++)
+        {
+            if(g_tScrtRes[i].u8Used == 0)
+            {
+                scrt_clk_enable(1, (SCRT_OTP_CLK_MSK | SCRT_IP_CLK_MSK));
+
+                g_tScrtRes[i].u8Used = 1;
+                u8Idx = i;
+                break;
+            }
+        }
+
+        if(scrt_res_unlock())
+        {
+            SCRT_LOGE("[%s %d] scrt_res_unlock fail\n", __func__, __LINE__);
+            break;
+        }
+
+        if(u8Idx != SCRT_MB_IDX_MAX)
+        {
+            break;
+        }
+
+        ++u32Cnt;
+        osDelay(SCRT_WAIT_RES);
+    }
+
+    if(u32Cnt >g_u32ScrtWaitResCnt)
+    {
+        g_u32ScrtWaitResCnt = u32Cnt;
+    }
+
+    return u8Idx;
+}
+
 /*
  * scrt_drv_func_init - Interface Initialization: SCRT
  *
@@ -1211,10 +1564,12 @@ done:
 void scrt_drv_func_init_patch(void)
 {
     nl_scrt_aes_cmac_get = nl_scrt_aes_cmac_patch;
-    //nl_scrt_hmac_sha_1_step = nl_scrt_hmac_sha_1_step_patch;
-
     nl_scrt_aes_ccm = nl_scrt_aes_ccm_patch;
     nl_scrt_aes_ecb = nl_scrt_aes_ecb_patch;
+    nl_scrt_sha = nl_scrt_sha_patch;
+    nl_scrt_Init = nl_scrt_init_patch;
+    nl_scrt_otp_status_get = nl_scrt_otp_status_get_patch;
+    scrt_res_alloc = scrt_res_alloc_patch;
 
     #ifdef SCRT_CMD_PATCH
     nl_scrt_cmd_func_init_patch();

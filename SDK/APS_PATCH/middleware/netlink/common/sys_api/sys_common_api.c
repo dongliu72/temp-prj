@@ -35,7 +35,7 @@ int mac_addr_get_config_source(mac_iface_t iface, mac_source_type_t *type)
         return -1;
     }
     
-    ret = base_mac_addr_src_get_cfg(iface, type);
+    ret = base_mac_addr_src_get_cfg(iface, (u8 *)type);
     if (ret != true) {
         API_SYS_COMMON_LOGE("Get mac address config failed.");
         return -1;
@@ -67,7 +67,7 @@ int mac_addr_set_config_source(mac_iface_t iface, mac_source_type_t type)
     return 0;
 }
 
-int sys_get_config_rf_power_level(sys_rf_power_level_t *level)
+int sys_get_config_rf_power_level(uint8_t *level)
 {
     int ret;
     
@@ -85,18 +85,38 @@ int sys_get_config_rf_power_level(sys_rf_power_level_t *level)
     return 0;
 }
 
-int sys_set_config_rf_power_level(sys_rf_power_level_t level)
+int sys_set_config_rf_power_level(uint8_t level)
 {
     int ret;
+
+    ret = set_rf_power_level(level);
+    if (ret != true) {
+        API_SYS_COMMON_LOGE("Set rf power config failed.");
+        return -1;
+    }
     
-    if (level > SYS_RF_HIGH_POWER) {
+    return 0;
+}
+
+int tcp_get_config_dhcp_arp_check(uint8_t *mode)
+{
+    if (mode == NULL) {
         API_SYS_COMMON_LOGE("Invalid parameter.");
         return -1;
     }
     
-    ret = set_rf_power_level(level);
-    if (ret != true) {
-        API_SYS_COMMON_LOGE("Set rf power config failed.");
+    *mode = get_dhcp_arp_check();
+    return 0;
+}
+
+int tcp_set_config_dhcp_arp_check(uint8_t mode)
+{
+    if (mode > 1) {
+        API_SYS_COMMON_LOGE("Invalid parameter.");
+        return -1;
+    }
+    
+    if (set_dhcp_arp_check(mode) != true) {
         return -1;
     }
     
