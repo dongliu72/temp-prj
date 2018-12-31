@@ -45,8 +45,6 @@ int wifi_ind_connection(void *data, int len);
 int wifi_ind_disconnection(void *data, int len);
 
 #define WIFI_READY_TIME 2000
-#define BLEWIFI_CONNECTED_DONE 0
-#define BLEWIFI_CONNECTED_FAIL 1
 
 void wifi_wait_ready(void)
 {
@@ -60,8 +58,6 @@ int wifi_do_scan(int mode)
 
     memset(&scan_config, 0, sizeof(scan_config));
     scan_config.scan_type = (wifi_scan_type_t)mode;
-	  // force scan mode use mixed mode 
-		scan_config.scan_type = WIFI_SCAN_TYPE_MIX;
     wifi_scan_start(&scan_config, NULL);
     return 0;
 }
@@ -92,11 +88,10 @@ int wifi_do_connection(void)
 
     if(isMatched == 1) {
         /* Wi-Fi Connection */
-        //wifi_connection_connect(&wifi_config); // replaced with wifi_connection_repeat_connect
-				wifi_connection_repeat_connect(&wifi_config,BLEWIFI_REPEAT_CONNECT_TIMES);
+        wifi_connection_connect(&wifi_config);
     } else {
         /* Scan Again */
-        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
+        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
     }
 
     return 0;
@@ -234,15 +229,11 @@ int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
     case WIFI_EVENT_STA_CONNECTED:
         lwip_net_start(WIFI_MODE_STA);
         printf("\r\nWi-Fi Connected \r\n");
-        reason = BLEWIFI_CONNECTED_DONE;
-        wifi_ind_connection((void *)&reason, length);		
-        //wifi_ind_connection(data, length);
+        wifi_ind_connection(data, length);
         break;
     case WIFI_EVENT_STA_DISCONNECTED:
         printf("\r\nWi-Fi Disconnected , reason %d\r\n", reason);
-        reason = BLEWIFI_CONNECTED_FAIL;
-        wifi_ind_connection((void *)&reason, length);			
-        //wifi_ind_disconnection(data, length);
+        wifi_ind_disconnection(data, length);
         break;
     case WIFI_EVENT_SCAN_COMPLETE:
         printf("\r\nWi-Fi Scan Done \r\n");
@@ -255,9 +246,7 @@ int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
         printf("\r\nWi-Fi Connected failed, reason %d\r\n", reason);
         //open     - sucess:0, failed:1
         //security - sucess:2, failed:3
-        reason = BLEWIFI_CONNECTED_FAIL;
-        wifi_ind_connection((void *)&reason, length);		
-        //wifi_ind_connection(data, length);
+        wifi_ind_connection(data, length);
         break;
     default:
         printf("\r\n Unknown Event %d \r\n", event_id);

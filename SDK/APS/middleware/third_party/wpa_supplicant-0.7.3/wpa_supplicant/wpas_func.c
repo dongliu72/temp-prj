@@ -27,7 +27,6 @@
 #include "driver_netlink.h"
 #include "wpas_glue.h"
 #include "wpa_demo.h"
-#include "wpa_at_if.h"
 
 extern void wpa_supplicant_task_func_init(void);
 
@@ -51,6 +50,5 @@ void wpas_func_init(void)
     wpa_eloop_func_init();
     wpa_driver_func_init();
     wpa_demo_func_init();
-    wpa_at_if_func_init();
 }
 

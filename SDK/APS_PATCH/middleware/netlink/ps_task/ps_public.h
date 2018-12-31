@@ -11,9 +11,6 @@
 
 #include "hal_vic.h"
 
-#ifndef __PS_PUBLIC_H__
-#define __PS_PUBLIC_H__
-
 typedef enum
 {
 	PS_WAKEUP_TYPE_IO,		/**< Wakeup by external IO of pre-defined */
@@ -26,18 +23,12 @@ typedef void (*PS_WAKEUP_CALLBACK)(PS_WAKEUP_TYPE);
 /*
 * @brief Configure external input for system wakeup from sleep
 *
-* @param [in] num The number of external input used for wakeup
+* @param [in] ext_io_num The number of external input used for wakeup
 *
-* @param [in] enable Set whether enable the external wake-up mechanism
-*
-* @param [in] type The trigger type for external input
-*
-* @param [in] invert Set whether invert the triggered signal
-*
-* @param [in] callback The ISR which be invoked at IO wake-up happened
+* @param [in] ext_io_type The trigger type for external input
 *
 */
-void ps_set_wakeup_io(E_GpioIdx_t num, int enable, E_ItrType_t type, int invert, T_Gpio_CallBack callback);
+void ps_set_wakeup_io(E_GpioIdx_t ext_io_num, E_ItrType_t ext_io_type);
 
 /*
 * @brief Set callback witch invoked at system wakeup
@@ -68,9 +59,7 @@ void ps_timer_sleep(uint32_t sleep_duration_ms);
 *   - BLE advertising is enabled<br/>
 *	- BLE connection is exists<br/>
 *
-* @param [in] enable Configure whether smart sleep is enabled
+* @param [in] sleep_duration_ms Timer timeout value unit in millisecond
 *
 */
 void ps_smart_sleep(int enable);
-
-#endif

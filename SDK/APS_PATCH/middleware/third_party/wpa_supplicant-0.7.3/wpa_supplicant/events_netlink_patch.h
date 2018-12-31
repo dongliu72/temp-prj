@@ -9,9 +9,15 @@
 *  permission of Opulinks Technology Ltd. (C) 2018
 ******************************************************************************/
 
-#ifndef _EVENTS_NETLINK_PATCH_H_
-#define _EVENTS_NETLINK_PATCH_H_
+#ifndef __EVENTS_NETLINK_PATCH_H__
+#define __EVENTS_NETLINK_PATCH_H__
+#include "wpa_supplicant_i.h"
+#include "wpabuf.h"
+#include "common.h"
+#include "driver.h"
 
-void wpa_events_func_init(void);
+void wpa_supplicant_event_assoc_patch(struct wpa_supplicant *wpa_s, union wpa_event_data *data);
+void events_netlink_func_init_patch(void);
 
-#endif /* _EVENTS_NETLINK_PATCH_H_ */
+#endif
+

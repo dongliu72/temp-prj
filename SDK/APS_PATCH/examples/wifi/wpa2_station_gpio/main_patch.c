@@ -1,6 +1,6 @@
 /******************************************************************************
 *  Copyright 2017 - 2018, Opulinks Technology Ltd.
-*  ----------------------------------------------------------------------------
+*  ---------------------------------------------------------------------------
 *  Statement:
 *  ----------
 *  This software is protected by Copyright and the information contained
@@ -16,7 +16,7 @@
 *
 *  Project:
 *  --------
-*  OPL1000 Project - the main patch implement file
+*  NL1000 Project - the main patch implement file
 *
 *  Description:
 *  ------------
@@ -24,7 +24,7 @@
 *
 *  Author:
 *  -------
-*  SH SDK
+*  Jeff Kuo
 *
 ******************************************************************************/
 /***********************
@@ -35,20 +35,14 @@ Head Block of The File
 
 // Sec 1: Include File
 #include <stdio.h>
-#include <stdint.h>
 #include <string.h>
-#include "sys_init.h"
 #include "sys_init_patch.h"
-#include "hal_system.h"
-#include "mw_fim.h"
 #include "cmsis_os.h"
 #include "sys_os_config.h"
 #include "wpa2_station_app.h"
 #include "msg_patch.h"
-#include "hal_pin.h"
-#include "hal_pin_def.h"
-#include "hal_pin_config_project.h"
-#include "mw_fim.h"
+
+
 // Sec 2: Constant Definitions, Imported Symbols, miscellaneous
 // the number of elements in the message queue
 
@@ -64,8 +58,8 @@ Declaration of data structure
 Declaration of Global Variables & Functions
 ********************************************/
 // Sec 4: declaration of global variable
-extern T_TracerTaskInfoExt g_taTracerDefIntTaskInfoBody[TRACER_INT_TASK_NUM_MAX];
-extern T_TracerLogLevelSetFp tracer_log_level_set_ext;
+extern T_TracerTaskInfo g_taTracerIntTaskInfoBody[];
+
 // Sec 5: declaration of global function prototype
 typedef void (*T_Main_AppInit_fp)(void);
 extern T_Main_AppInit_fp Main_AppInit;
@@ -80,8 +74,6 @@ Declaration of static Global Variables & Functions
 // Sec 7: declaration of static function prototype
 static void __Patch_EntryPoint(void) __attribute__((section(".ARM.__at_0x00420000")));
 static void __Patch_EntryPoint(void) __attribute__((used));
-static void Main_PinMuxUpdate(void);
-static void Main_FlashLayoutUpdate(void);
 void Main_AppInit_patch(void);
 
 
@@ -109,77 +101,8 @@ static void __Patch_EntryPoint(void)
     // don't remove this code
     SysInit_EntryPoint();
     
-    // update the pin mux
-    Hal_SysPinMuxAppInit = Main_PinMuxUpdate;
-    
-    // update the flash layout
-    MwFim_FlashLayoutUpdate = Main_FlashLayoutUpdate;
-    
     // application init
-    Sys_AppInit = Main_AppInit_patch;
-}
-
-
-
-/*************************************************************************
-* FUNCTION:
-*   Main_PinMuxUpdate
-*
-* DESCRIPTION:
-*   update the pin-mux setting
-*
-* PARAMETERS
-*   none
-*
-* RETURNS
-*   none
-*
-*************************************************************************/
-static void Main_PinMuxUpdate(void)
-{
-    Hal_Pin_ConfigSet(0, HAL_PIN_TYPE_IO_0, HAL_PIN_DRIVING_IO_0);
-    Hal_Pin_ConfigSet(1, HAL_PIN_TYPE_IO_1, HAL_PIN_DRIVING_IO_1);
-    Hal_Pin_ConfigSet(2, HAL_PIN_TYPE_IO_2, HAL_PIN_DRIVING_IO_2);
-    Hal_Pin_ConfigSet(3, HAL_PIN_TYPE_IO_3, HAL_PIN_DRIVING_IO_3);
-    Hal_Pin_ConfigSet(4, HAL_PIN_TYPE_IO_4, HAL_PIN_DRIVING_IO_4);
-    Hal_Pin_ConfigSet(5, HAL_PIN_TYPE_IO_5, HAL_PIN_DRIVING_IO_5);
-    Hal_Pin_ConfigSet(6, HAL_PIN_TYPE_IO_6, HAL_PIN_DRIVING_IO_6);
-    Hal_Pin_ConfigSet(7, HAL_PIN_TYPE_IO_7, HAL_PIN_DRIVING_IO_7);
-    Hal_Pin_ConfigSet(8, HAL_PIN_TYPE_IO_8, HAL_PIN_DRIVING_IO_8);
-    Hal_Pin_ConfigSet(9, HAL_PIN_TYPE_IO_9, HAL_PIN_DRIVING_IO_9);
-    Hal_Pin_ConfigSet(10, HAL_PIN_TYPE_IO_10, HAL_PIN_DRIVING_IO_10);
-    Hal_Pin_ConfigSet(11, HAL_PIN_TYPE_IO_11, HAL_PIN_DRIVING_IO_11);
-    Hal_Pin_ConfigSet(12, HAL_PIN_TYPE_IO_12, HAL_PIN_DRIVING_IO_12);
-    Hal_Pin_ConfigSet(13, HAL_PIN_TYPE_IO_13, HAL_PIN_DRIVING_IO_13);
-    Hal_Pin_ConfigSet(14, HAL_PIN_TYPE_IO_14, HAL_PIN_DRIVING_IO_14);
-    Hal_Pin_ConfigSet(15, HAL_PIN_TYPE_IO_15, HAL_PIN_DRIVING_IO_15);
-    Hal_Pin_ConfigSet(16, HAL_PIN_TYPE_IO_16, HAL_PIN_DRIVING_IO_16);
-    Hal_Pin_ConfigSet(17, HAL_PIN_TYPE_IO_17, HAL_PIN_DRIVING_IO_17);
-    Hal_Pin_ConfigSet(18, HAL_PIN_TYPE_IO_18, HAL_PIN_DRIVING_IO_18);
-    Hal_Pin_ConfigSet(19, HAL_PIN_TYPE_IO_19, HAL_PIN_DRIVING_IO_19);
-    Hal_Pin_ConfigSet(20, HAL_PIN_TYPE_IO_20, HAL_PIN_DRIVING_IO_20);
-    Hal_Pin_ConfigSet(21, HAL_PIN_TYPE_IO_21, HAL_PIN_DRIVING_IO_21);
-    Hal_Pin_ConfigSet(22, HAL_PIN_TYPE_IO_22, HAL_PIN_DRIVING_IO_22);
-    Hal_Pin_ConfigSet(23, HAL_PIN_TYPE_IO_23, HAL_PIN_DRIVING_IO_23);
-}
-
-/*************************************************************************
-* FUNCTION:
-*   Main_FlashLayoutUpdate
-*
-* DESCRIPTION:
-*   update the flash layout
-*
-* PARAMETERS
-*   none
-*
-* RETURNS
-*   none
-*
-*************************************************************************/
-static void Main_FlashLayoutUpdate(void)
-{
-    // update here
+    Main_AppInit = Main_AppInit_patch;
 }
 
 /*************************************************************************
@@ -208,25 +131,25 @@ void App_Pin_InitConfig(void)
 
 void Internal_Module_Log_Config(char* module_name, bool on_off_set)
 {
-	  uint8_t log_level_set,i,module_index = TRACER_INT_TASK_NUM_MAX; 	
+	  uint8_t log_level_set,i,module_index; 	
 	
     if(on_off_set == true) 
         log_level_set = LOG_ALL_LEVEL;
     else
         log_level_set = LOG_NONE_LEVEL;	
     
-    for (i = 0; i < TRACER_INT_TASK_NUM_MAX; i++) 
-    {
-        if (strcmp(module_name,g_taTracerDefIntTaskInfoBody[i].baName) == 0)
-        {
-            module_index = i;
-            break;
-        }
-    }
-    if(module_index < TRACER_INT_TASK_NUM_MAX) 
-    {
-        tracer_log_level_set_ext(module_index, log_level_set);
-    }
+		for (i = 0; i < TRACER_INT_TASK_NUM_MAX; i++) 
+		{
+			if (strcmp(module_name,g_taTracerIntTaskInfoBody[i].baName) == 0)
+			{
+				module_index = i;
+				break;
+			}
+		}
+		if(module_index < TRACER_INT_TASK_NUM_MAX) 
+		{
+		    g_taTracerIntTaskInfoBody[module_index].bLevel = log_level_set;
+    } 
 } 
 
 
@@ -249,9 +172,9 @@ void Main_AppInit_patch(void)
     // init the pin assignment
     App_Pin_InitConfig();
 
-    Internal_Module_Log_Config("opl_wifi_mac",true);			
-    Internal_Module_Log_Config("opl_controller_task",true);
-    Internal_Module_Log_Config("opl_event_loop",true);	
+    Internal_Module_Log_Config("wifi_mac",true);			
+    Internal_Module_Log_Config("controller_task",true);
+    Internal_Module_Log_Config("event_loop",true);	
 	    
     // wifi init
     WifiAppInit();

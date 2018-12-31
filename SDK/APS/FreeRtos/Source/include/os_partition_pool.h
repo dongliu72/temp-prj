@@ -16,7 +16,7 @@
 *
 *  Project:
 *  --------
-*  OPL1000 Project - the partition pool definition file
+*  NL1000 Project �V the partition pool definition file
 *
 *  Description:
 *  ------------

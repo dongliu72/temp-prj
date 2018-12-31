@@ -12,7 +12,6 @@
 #ifndef __WPA_DEBUG_PATCH_H__
 #define __WPA_DEBUG_PATCH_H__
 
-#include "common.h"
 #include "wpabuf.h"
 #include "msg.h"
 
@@ -20,6 +19,8 @@ extern int g_DbgMode;
 
 #define wpa_printf_dbg(level, _message, ...) { if (g_DbgMode) msg_print(LOG_HIGH_LEVEL, (_message), ##__VA_ARGS__);}
 
+int wpa_get_debug_mode(void);
+void wpa_set_debug_mode(int mode);
 void wpa_debug_func_init_patch(void);
 
 #endif

@@ -372,6 +372,17 @@ int wifi_config_get_mac_address(wifi_mode_t interface, uint8_t *address);
 int wifi_config_set_mac_address(wifi_mode_t interface, uint8_t *address);
 
 /**
+  * @brief     Get mac address of station from flash
+  *
+  * @param[out]  address: Get the MAC address of station from flash,
+  *              The address is similar to this structure: xx:xx:xx:xx:xx:xx
+  *
+  * @return    0  : success
+  * @return    other : failed
+  */
+int wifi_config_get_sta_mac_address_from_flash(uint8_t *bssid);
+
+/**
   * @brief Get ssid value of AP
   *
   * @param[out]  ssid: Get ssid by pointer
@@ -496,6 +507,10 @@ int wifi_config_get_skip_dtim(uint8_t *value);
   *
   * @param[in]  value: Set the Skip DTIM value
   * 
+  * @param[in]  save_flash: Enable/Disable to write in flash.
+  *             - 0 : Not write in flash. (Only effect in runtime)
+  *             - 1 : Write in flash and effect the value.
+  *
   * @attention 1. This API will set the skip DTIM value to share memory and
   *               stored in flash, please use wifi_config_get_skip_dtim() to
   *               check it.
@@ -508,7 +523,7 @@ int wifi_config_get_skip_dtim(uint8_t *value);
   * @return    other : failed
   *
  */
-int wifi_config_set_skip_dtim(uint8_t value);
+int wifi_config_set_skip_dtim(uint8_t value, bool save_flash);
 
 /**
   * @brief     Get the Mac tx data rate in current wifi setting of OPL1000
@@ -569,11 +584,11 @@ int wifi_auto_connect_get_mode(uint8_t *mode);
 int wifi_auto_connect_set_mode(uint8_t mode);
 
 /**
-  * @brief     Get the number of AP information.
+  * @brief     Get the maximum number of AP information.
   *
-  * @attention 1. API returns false if try to get auto connect numbers which something error
+  * @attention 1. API returns false if try to get maximum auto connect numbers which something error
   *
-  * @param[out]  mode: Get the number of AP information
+  * @param[out]  num: Get the maximum number of AP information
   *
   * @return    0  : success
   * @return    other : failed
@@ -581,17 +596,29 @@ int wifi_auto_connect_set_mode(uint8_t mode);
 int wifi_auto_connect_get_ap_num(uint8_t *num);
 
 /**
-  * @brief     Set the number of AP information.
+  * @brief     Set the maximum number of AP information.
   *
-  * @attention 1. API returns false if try to set auto connect numbers which something error
+  * @attention 1. API returns false if try to set maximum auto connect numbers which something error
   *
-  * @param[in]   num: The number of AP information will be saved in flash.
+  * @param[in]   num: The maximum number of AP information will be saved in flash.
   *              - Range is 1 to 3
   *
   * @return    0  : success
   * @return    other : failed
  */
 int wifi_auto_connect_set_ap_num(uint8_t num);
+
+/**
+  * @brief     Get the current number of AP save in flash.
+  *
+  * @attention 1. API returns false if try to get current auto connect numbers which something error
+  *
+  * @param[out]   num: The current number of AP information will be saved in flash.
+  *
+  * @return    0  : success
+  * @return    other : failed
+ */
+int wifi_auto_connect_get_saved_ap_num(uint8_t *num);
 
 /**
   * @brief     Get the AP information.
@@ -620,6 +647,22 @@ int wifi_auto_connect_get_ap_info(uint8_t index, wifi_auto_connect_info_t *info)
   * @return    other : failed
  */
 int wifi_auto_connect_clear_ap_info(uint8_t index);
+
+/**
+  * @brief     Update the channel which AP index in auto connect list.
+  *
+  * @attention 1. API returns false if update channel which something error
+  *
+  * @param[in]   index: The index of AP position
+  *              - Range is 0 to 2
+  *
+  * @param[in]   channel: The channel of AP's used.
+  *              - Range is 1 to 14
+  *
+  * @return    0  : success
+  * @return    other : failed
+ */
+int wifi_auto_connect_update_ch(uint8_t ac_index, uint8_t channel);
 
 /**
   * @brief     Initialize function of auto connect.

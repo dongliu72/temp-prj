@@ -20,14 +20,11 @@
 FILE *out_file = NULL;
 #endif
 
-//int wpa_debug_level = MSG_DEBUG;
-RET_DATA int wpa_debug_level;
-//int wpa_debug_show_keys = 1;
-RET_DATA int wpa_debug_show_keys;
-//int wpa_debug_timestamp = 1;
-RET_DATA int wpa_debug_timestamp;
 
-RET_DATA int g_DbgMode;
+int wpa_debug_level = MSG_DEBUG;
+int wpa_debug_show_keys = 1;
+int wpa_debug_timestamp = 1;
+
 
 #ifndef CONFIG_NO_STDOUT_DEBUG
 void wpa_debug_print_timestamp_impl(void)
@@ -74,18 +71,18 @@ void _wpa_hexdump_impl(int level, const char *title, const u8 *buf,
 	} else {
 #endif
 
-    wpa_printf(MSG_DEBUG, "\r\n %s - hexdump(len=%lu):", title, (unsigned long) len);
+	printf("\r\n %s - hexdump(len=%lu):", title, (unsigned long) len);
 
 	if (buf == NULL) {
-        wpa_printf(MSG_DEBUG, " [NULL]");
+		printf(" [NULL]");
 	} else if (show) {
 		for (i = 0; i < len; i++)
-            wpa_printf(MSG_DEBUG, " %02x", buf[i]);
+			printf(" %02x", buf[i]);
 	} else {
-        wpa_printf(MSG_DEBUG, " [REMOVED]");
+		printf(" [REMOVED]");
 	}
 
-	wpa_printf(MSG_DEBUG, " \r\n");
+	printf("\r\n");
 
 #ifdef CONFIG_DEBUG_FILE
 	}
@@ -225,15 +222,6 @@ void wpa_msg(void *ctx, int level, const char *fmt, ...)
 }
 #endif //#ifndef CONFIG_NO_WPA_MSG
 
-int wpa_get_debug_mode_impl(void)
-{
-    return g_DbgMode;
-}
-
-void wpa_set_debug_mode_impl(int mode)
-{
-    g_DbgMode = mode;
-}
 
 #ifndef CONFIG_NO_STDOUT_DEBUG
 RET_DATA wpa_debug_print_timestamp_fp_t wpa_debug_print_timestamp;
@@ -245,8 +233,6 @@ RET_DATA wpa_hexdump_ascii_fp_t wpa_hexdump_ascii;
 RET_DATA wpa_hexdump_ascii_key_fp_t wpa_hexdump_ascii_key;
 #endif //#ifndef CONFIG_NO_STDOUT_DEBUG
 
-RET_DATA wpa_get_debug_mode_fp_t wpa_get_debug_mode;
-RET_DATA wpa_set_debug_mode_fp_t wpa_set_debug_mode;
 
 /*
    Interface Initialization: WPA DEBUG
@@ -262,8 +248,6 @@ void wpa_debug_func_init(void)
     wpa_hexdump_ascii = wpa_hexdump_ascii_impl;
     wpa_hexdump_ascii_key = wpa_hexdump_ascii_key_impl;
 #endif //#ifndef CONFIG_NO_STDOUT_DEBUG
-    wpa_get_debug_mode = wpa_get_debug_mode_impl;
-    wpa_set_debug_mode = wpa_set_debug_mode_impl;
 }
 
 
@@ -492,4 +476,5 @@ void wpa_debug_close_file(void)
 }
 #endif
 #endif //#ifndef CONFIG_NO_STDOUT_DEBUG
+
 

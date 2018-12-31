@@ -85,7 +85,6 @@
 
 #define LWIP_NETIF_LINK_CALLBACK   1
 #define LWIP_NETIF_STATUS_CALLBACK 1
-#define LWIP_NETIF_IP_CHANGE_CALLBACK 1
 
 #define LWIP_DYNAMIC_DEBUG_ENABLE
 #if defined(LWIP_DYNAMIC_DEBUG_ENABLE)
@@ -179,7 +178,7 @@
 /**
  * TCPIP_THREAD_NAME: The name assigned to the main tcpip thread.
  */
-#define TCPIP_THREAD_NAME              "opl_tcpip"
+#define TCPIP_THREAD_NAME              "tcpip_thread"
 
 /**
  * TCPIP_THREAD_STACKSIZE: The stack size used by the main tcpip thread.
@@ -455,9 +454,5 @@ a lot of data that needs to be copied, this should be set high. */
 #define MD5_SUPPORT             1      /* Set > 0 for MD5 (see also CHAP) */
 
 #endif /* PPP_SUPPORT */
-
-
-#define LWIP_DHCP_MAX_NTP_SERVERS       3
-
 
 #endif /* LWIP_LWIPOPTS_H */

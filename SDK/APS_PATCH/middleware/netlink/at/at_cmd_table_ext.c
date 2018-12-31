@@ -30,11 +30,15 @@
 #include "wifi_types.h"
 #include "wifi_api.h"
 #include "data_flow_patch.h"
+#include "hal_system.h"
+#include "hal_tick.h"
 
 //#define AT_FLASH_CHECK_BEFORE_WRITE
 //#define AT_DEBUG
 //#define AT_LOG                      msg_print_uart1
 #define AT_LOG(...)
+
+#if defined(__AT_CMD_SUPPORT__)
 
 #define AT_FLASH_READ_START         0x00000000
 #define AT_FLASH_READ_END           0x00100000
@@ -48,10 +52,14 @@ uint32_t g_u32FlashReadEnd = AT_FLASH_READ_END;
 uint32_t g_u32FlashWriteStart = AT_FLASH_WRITE_START;
 uint32_t g_u32FlashWriteEnd = AT_FLASH_WRITE_END;
 
+#endif /* __AT_CMD_SUPPORT__ */
+
 extern volatile uint8_t g_u8RfCmdRun;
 extern T_RfCmd g_tRfCmd;
 extern int rf_cmd_param_alloc(int iArgc, char *saArgv[]);
 extern void rf_cmd_param_free(void);
+
+#if defined(__AT_CMD_SUPPORT__)
 
 int at_cmd_sys_mac_addr_def(char *buf, int len, int mode)
 {
@@ -132,6 +140,376 @@ done:
     
     return ret_st;
 }
+
+int at_cmd_tcp_dhcp_arp_check(char *buf, int len, int mode)
+{
+    int argc = 0;
+    char *argv[AT_MAX_CMD_ARGS] = {0};
+    u8 ret_st = 0;
+    u8 arp_mode;
+    
+    _at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS);
+
+    switch(mode)
+    {
+        case AT_CMD_MODE_READ:
+            tcp_get_config_dhcp_arp_check(&arp_mode);
+            msg_print_uart1("\r\n+DHCPARPCHK:%d\r\n", arp_mode);
+            
+            ret_st = 1;
+            break;
+        case AT_CMD_MODE_SET:
+            if (argc != 2) {
+                goto done;
+            }
+            
+            arp_mode = atoi(argv[1]);
+            if (arp_mode > 1) {
+                goto done;
+            }
+            
+            if (tcp_set_config_dhcp_arp_check(arp_mode) != 0) {
+                goto done;
+            }
+            
+            ret_st = 1;
+            
+            break;
+        default:
+            break;
+    }
+
+done:
+    if (ret_st)
+        msg_print_uart1("\r\nOK\r\n");
+    else 
+        msg_print_uart1("\r\nError\r\n");
+    
+    return ret_st;
+}
+
+int at_cmd_mac_data_rate(char *buf, int len, int mode)
+{
+    int argc = 0;
+    char *argv[AT_MAX_CMD_ARGS] = {0};
+    u8 ret_st = 0;
+    u8 data_rate;
+    
+    _at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS);
+
+    switch(mode)
+    {
+        case AT_CMD_MODE_READ:
+            wifi_config_get_mac_tx_data_rate((wifi_mac_data_rate_t *)&data_rate);
+            msg_print_uart1("\r\n+MACDATARATE:%d\r\n", data_rate);
+            ret_st = 1;
+            break;
+        case AT_CMD_MODE_SET:
+            if (argc != 2) {
+                goto done;
+            }
+
+            data_rate = atoi(argv[1]);
+            if (data_rate > WIFI_MAC_DATA_RATE_11M) {
+                goto done;
+            }
+
+            if (wifi_config_set_mac_tx_data_rate((wifi_mac_data_rate_t)data_rate) != 0) {
+                goto done;
+            }
+            
+            ret_st = 1;
+            break;
+        default:
+            break;
+    }
+
+done:
+    if (ret_st)
+        msg_print_uart1("\r\nOK\r\n");
+    else 
+        msg_print_uart1("\r\nError\r\n");
+    
+    return ret_st;
+}
+
+int at_cmd_sys_phy_dump(char *buf, int len, int mode)
+{
+    int iRet = 0;
+    char *argv[AT_MAX_CMD_ARGS] = {0};
+    int argc = 0;
+
+    if(g_u8RfCmdRun)
+    {
+        at_output("RF cmd is running\r\nERROR\r\n");
+        goto ignore;
+    }
+
+    if(!_at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS))
+    {
+        goto done;
+    }
+
+    if(argc < 2)
+    {
+        at_output("invalid param number\r\n");
+        goto done;
+    }
+
+    if(rf_cmd_param_alloc(argc, argv))
+    {
+        goto done;
+    }
+
+    g_tRfCmd.u32Type = RF_EVT_PHY_DUMP;
+    g_u8RfCmdRun = 1;
+    IPC_CMD_SEND(RF_CMD_EVT, (void*)&g_tRfCmd, sizeof(g_tRfCmd));
+
+    iRet = 1;
+
+done:
+    if(!iRet)
+    {
+        rf_cmd_param_free();
+
+        at_output("ERROR\r\n");
+    }
+
+ignore:
+    return iRet;
+}
+
+int at_cmd_sys_reload_ow(char *buf, int len, int mode)
+{
+    int iRet = 0;
+    char *argv[AT_MAX_CMD_ARGS] = {0};
+    int argc = 0;
+
+    if(g_u8RfCmdRun)
+    {
+        at_output("RF cmd is running\r\nERROR\r\n");
+        goto ignore;
+    }
+
+    if(!_at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS))
+    {
+        goto done;
+    }
+
+    if(argc < 1)
+    {
+        at_output("invalid param number\r\n");
+        goto done;
+    }
+
+    if(rf_cmd_param_alloc(argc, argv))
+    {
+        goto done;
+    }
+
+    g_tRfCmd.u32Type = RF_EVT_RELOAD_OW;
+    g_u8RfCmdRun = 1;
+    IPC_CMD_SEND(RF_CMD_EVT, (void*)&g_tRfCmd, sizeof(g_tRfCmd));
+
+    iRet = 1;
+
+done:
+    if(!iRet)
+    {
+        rf_cmd_param_free();
+
+        at_output("ERROR\r\n");
+    }
+
+ignore:
+    return iRet;
+}
+
+int at_cmd_sys_store_ow(char *buf, int len, int mode)
+{
+    int iRet = 0;
+    char *argv[AT_MAX_CMD_ARGS] = {0};
+    int argc = 0;
+
+    if(g_u8RfCmdRun)
+    {
+        at_output("RF cmd is running\r\nERROR\r\n");
+        goto ignore;
+    }
+
+    if(!_at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS))
+    {
+        goto done;
+    }
+
+    if(argc < 1)
+    {
+        at_output("invalid param number\r\n");
+        goto done;
+    }
+
+    if(rf_cmd_param_alloc(argc, argv))
+    {
+        goto done;
+    }
+
+    g_tRfCmd.u32Type = RF_EVT_STORE_OW;
+    g_u8RfCmdRun = 1;
+    IPC_CMD_SEND(RF_CMD_EVT, (void*)&g_tRfCmd, sizeof(g_tRfCmd));
+
+    iRet = 1;
+
+done:
+    if(!iRet)
+    {
+        rf_cmd_param_free();
+
+        at_output("ERROR\r\n");
+    }
+
+ignore:
+    return iRet;
+}
+
+int at_cmd_sys_show_ow(char *buf, int len, int mode)
+{
+    int iRet = 0;
+    char *argv[AT_MAX_CMD_ARGS] = {0};
+    int argc = 0;
+
+    if(g_u8RfCmdRun)
+    {
+        at_output("RF cmd is running\r\nERROR\r\n");
+        goto ignore;
+    }
+
+    if(!_at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS))
+    {
+        goto done;
+    }
+
+    if(argc < 2)
+    {
+        at_output("invalid param number\r\n");
+        goto done;
+    }
+
+    if(rf_cmd_param_alloc(argc, argv))
+    {
+        goto done;
+    }
+
+    g_tRfCmd.u32Type = RF_EVT_SHOW_OW;
+    g_u8RfCmdRun = 1;
+    IPC_CMD_SEND(RF_CMD_EVT, (void*)&g_tRfCmd, sizeof(g_tRfCmd));
+
+    iRet = 1;
+
+done:
+    if(!iRet)
+    {
+        rf_cmd_param_free();
+
+        at_output("ERROR\r\n");
+    }
+
+ignore:
+    return iRet;
+}
+
+int at_cmd_sys_add_ow(char *buf, int len, int mode)
+{
+    int iRet = 0;
+    char *argv[AT_MAX_CMD_ARGS] = {0};
+    int argc = 0;
+
+    if(g_u8RfCmdRun)
+    {
+        at_output("RF cmd is running\r\nERROR\r\n");
+        goto ignore;
+    }
+
+    if(!_at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS))
+    {
+        goto done;
+    }
+
+    if(argc < 4)
+    {
+        at_output("invalid param number\r\n");
+        goto done;
+    }
+
+    if(rf_cmd_param_alloc(argc, argv))
+    {
+        goto done;
+    }
+
+    g_tRfCmd.u32Type = RF_EVT_ADD_OW;
+    g_u8RfCmdRun = 1;
+    IPC_CMD_SEND(RF_CMD_EVT, (void*)&g_tRfCmd, sizeof(g_tRfCmd));
+
+    iRet = 1;
+
+done:
+    if(!iRet)
+    {
+        rf_cmd_param_free();
+
+        at_output("ERROR\r\n");
+    }
+
+ignore:
+    return iRet;
+}
+
+int at_cmd_sys_del_ow(char *buf, int len, int mode)
+{
+    int iRet = 0;
+    char *argv[AT_MAX_CMD_ARGS] = {0};
+    int argc = 0;
+
+    if(g_u8RfCmdRun)
+    {
+        at_output("RF cmd is running\r\nERROR\r\n");
+        goto ignore;
+    }
+
+    if(!_at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS))
+    {
+        goto done;
+    }
+
+    if(argc < 3)
+    {
+        at_output("invalid param number\r\n");
+        goto done;
+    }
+
+    if(rf_cmd_param_alloc(argc, argv))
+    {
+        goto done;
+    }
+
+    g_tRfCmd.u32Type = RF_EVT_DEL_OW;
+    g_u8RfCmdRun = 1;
+    IPC_CMD_SEND(RF_CMD_EVT, (void*)&g_tRfCmd, sizeof(g_tRfCmd));
+
+    iRet = 1;
+
+done:
+    if(!iRet)
+    {
+        rf_cmd_param_free();
+
+        at_output("ERROR\r\n");
+    }
+
+ignore:
+    return iRet;
+}
+
+#endif /* __AT_CMD_SUPPORT__ */
 
 int at_cmd_sys_rf_hp(char *buf, int len, int mode)
 {
@@ -228,6 +606,7 @@ ignore:
     return iRet;
 }
 
+#if defined(__AT_CMD_SUPPORT__)
 int at_cmd_sys_read_flash(char *buf, int len, int mode)
 {
     int iRet = 0;
@@ -672,55 +1051,7 @@ done:
     
     return iRet;
 }
-
-int at_cmd_tcp_dhcp_arp_check(char *buf, int len, int mode)
-{
-    int argc = 0;
-    char *argv[AT_MAX_CMD_ARGS] = {0};
-    u8 ret_st = 0;
-    u8 arp_mode;
-    
-    _at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS);
-
-    switch(mode)
-    {
-        case AT_CMD_MODE_READ:
-            tcp_get_config_dhcp_arp_check(&arp_mode);
-            msg_print_uart1("\r\n+DHCPARPCHK:%d\r\n", arp_mode);
-            
-            ret_st = 1;
-            break;
-        case AT_CMD_MODE_SET:
-            if (argc != 2) {
-                goto done;
-            }
-            
-            arp_mode = atoi(argv[1]);
-            if (arp_mode > 1) {
-                goto done;
-            }
-            
-            if (tcp_set_config_dhcp_arp_check(arp_mode) != 0) {
-                goto done;
-            }
-            
-            ret_st = 1;
-            
-            break;
-        default:
-            break;
-    }
-
-done:
-    if (ret_st)
-        msg_print_uart1("\r\nOK\r\n");
-    else 
-        msg_print_uart1("\r\nError\r\n");
-    
-    return ret_st;
-}
-
-
+#endif /* __AT_CMD_SUPPORT__ */
 
 int at_cmd_at_switch_to_dbg(char *buf, int len, int mode)
 {
@@ -739,49 +1070,33 @@ int at_cmd_at_switch_to_dbg(char *buf, int len, int mode)
     return true;
 }
 
-int at_cmd_mac_data_rate(char *buf, int len, int mode)
+int at_cmd_sys_mp_rst(char *buf, int len, int mode)
 {
-    int argc = 0;
-    char *argv[AT_MAX_CMD_ARGS] = {0};
-    u8 ret_st = 0;
-    u8 data_rate;
-    
-    _at_cmd_buf_to_argc_argv(buf, &argc, argv, AT_MAX_CMD_ARGS);
+    extern int _at_cmd_sys_rst(char *buf, int len, int mode);
+    return _at_cmd_sys_rst(buf, len, mode);
+}
 
-    switch(mode)
+int at_cmd_at_slp_tmr(char *buf, int len, int mode)
+{
+    uint32_t u32TickStart = 0;
+    uint32_t u32TickDiff = 0;
+    uint64_t u64SlpTmrStart = 0;
+    uint64_t u64SlpTmrEnd = 0;
+
+    Hal_Tick_Init();
+    
+    u64SlpTmrStart = Hal_Sys_SleepTimerGet();
+    u32TickStart = Hal_Tick_Diff( 0 );
+    while( u32TickDiff < ( 1000* Hal_Tick_PerMilliSec() ) )
     {
-        case AT_CMD_MODE_READ:
-            wifi_config_get_mac_tx_data_rate((wifi_mac_data_rate_t *)&data_rate);
-            msg_print_uart1("\r\n+MACDATARATE:%d\r\n", data_rate);
-            ret_st = 1;
-            break;
-        case AT_CMD_MODE_SET:
-            if (argc != 2) {
-                goto done;
-            }
-
-            data_rate = atoi(argv[1]);
-            if (data_rate > WIFI_MAC_DATA_RATE_11M) {
-                goto done;
-            }
-
-            if (wifi_config_set_mac_tx_data_rate((wifi_mac_data_rate_t)data_rate) != 0) {
-                goto done;
-            }
-            
-            ret_st = 1;
-            break;
-        default:
-            break;
+        // busy wait here
+        u32TickDiff = Hal_Tick_Diff( u32TickStart );
     }
-
-done:
-    if (ret_st)
-        msg_print_uart1("\r\nOK\r\n");
-    else 
-        msg_print_uart1("\r\nError\r\n");
+    u64SlpTmrEnd = Hal_Sys_SleepTimerGet();
     
-    return ret_st;
+    msg_print_uart1("\r\n32K XTAL Freq: %lld\n\r", u64SlpTmrEnd - u64SlpTmrStart);
+    tracer_drct_printf("\r\n32K XTAL Freq: %lld\n\r", u64SlpTmrEnd - u64SlpTmrStart);
+    return true;
 }
 
 /**
@@ -795,13 +1110,22 @@ _at_command_t gAtCmdTbl_ext[] =
     { "at+macaddrdef",          at_cmd_sys_mac_addr_def,    "Default mac address from OTP or others storage" },
     { "at+dhcparpchk",          at_cmd_tcp_dhcp_arp_check,  "Enable/Disable DHCP ARP check mechanism"},
     { "at+macdatarate",         at_cmd_mac_data_rate,       "Control Wifi Mac Tx data rate"},
+    { "at+phydump",             at_cmd_sys_phy_dump,      "PHY dump mode (for RD debug)"},
+    { "at+reloadow",            at_cmd_sys_reload_ow,     "Read setting from flash"},
+    { "at+storeow",             at_cmd_sys_store_ow,      "Store setting to flash"},
+    { "at+showow",              at_cmd_sys_show_ow,       "Display overwrite table"},
+    { "at+addow",               at_cmd_sys_add_ow,        "Add entry to overwrite table"},
+    { "at+delow",               at_cmd_sys_del_ow,        "Delete entry from overwrite table"},
+
+    { "at+readflash",           at_cmd_sys_read_flash,    "Read flash" },
+    { "at+writeflash",          at_cmd_sys_write_flash,   "Write flash" },
+    { "at+eraseflash",          at_cmd_sys_erase_flash,   "Erase flash" },
 #endif /* __AT_CMD_SUPPORT__ */
 
     { "at+rfhp",                at_cmd_sys_rf_hp,         "Set RF power"},
     { "at+rftm",                at_cmd_sys_rf_test_mode,  "Set RF test mode"},
-    { "at+readflash",           at_cmd_sys_read_flash,    "Read flash" },
-    { "at+writeflash",          at_cmd_sys_write_flash,   "Write flash" },
-    { "at+eraseflash",          at_cmd_sys_erase_flash,   "Erase flash" },
     { "at+switchdbg",           at_cmd_at_switch_to_dbg,  "AT switch to Debug UART"},
+    { "at+mprst",               at_cmd_sys_mp_rst,        "Restart module (MP usage)"},
+    { "at+slptmr",              at_cmd_at_slp_tmr,        "Got measured 32K XTAL freq"},
     { NULL,                     NULL,                     NULL},
 };
