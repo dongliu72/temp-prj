@@ -122,3 +122,28 @@ int tcp_set_config_dhcp_arp_check(uint8_t mode)
     
     return 0;
 }
+
+int tcp_set_dhcp_interval_retry_times(uint8_t dhcp_mode,uint32_t dhcp_interval,uint8_t dhcp_retry_times)
+{
+    
+    if (dhcp_interval ==0 || dhcp_retry_times==0 || dhcp_mode>1) {
+        return -1;
+    }
+    
+    set_dhcp_interval_retry_times(dhcp_mode,dhcp_interval,dhcp_retry_times);
+        
+    return 0;
+}
+
+int ble_set_config_bd_addr(uint8_t *bd_addr)
+{
+    set_ble_bd_addr(bd_addr);
+    return 0;
+}
+
+int ble_get_config_bd_addr(uint8_t *bd_addr)
+{
+    get_ble_bd_addr(bd_addr);
+    return 0;
+}
+
