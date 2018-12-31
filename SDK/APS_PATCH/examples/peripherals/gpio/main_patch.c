@@ -1,12 +1,12 @@
 /******************************************************************************
-*  Copyright 2018, Opulinks Technology Ltd. 
+*  Copyright 2017 - 2018, Opulinks Technology Ltd.
 *  ----------------------------------------------------------------------------
 *  Statement:
 *  ----------
 *  This software is protected by Copyright and the information contained
 *  herein is confidential. The software may not be copied and the information
 *  contained herein may not be used or disclosed except with the written
-*  permission of Opulinks Technology Ltd.  (C) 2018
+*  permission of Opulinks Technology Ltd. (C) 2018
 ******************************************************************************/
 
 /******************************************************************************
@@ -16,7 +16,7 @@
 *
 *  Project:
 *  --------
-*  NL1000 Project - the main patch implement file
+*  OPL1000 Project - the main patch implement file
 *
 *  Description:
 *  ------------
@@ -52,8 +52,11 @@ Head Block of The File
 
 // Sec 1: Include File
 #include <stdio.h>
+#include <stdint.h>
 #include <string.h>
+#include "sys_init.h"
 #include "sys_init_patch.h"
+#include "mw_fim.h"
 #include "cmsis_os.h"
 #include "sys_os_config.h"
 #include "Hal_pinmux_gpio.h"
@@ -99,6 +102,7 @@ static osPoolId g_tAppMemPoolId;
 // Sec 7: declaration of static function prototype
 static void __Patch_EntryPoint(void) __attribute__((section(".ARM.__at_0x00420000")));
 static void __Patch_EntryPoint(void) __attribute__((used));
+static void Main_FlashLayoutUpdate(void);
 void Main_AppInit_patch(void);
 static void Main_AppThread_1(void *argu);
 static void Main_AppThread_2(void *argu);
@@ -131,9 +135,32 @@ static void __Patch_EntryPoint(void)
     // don't remove this code
     SysInit_EntryPoint();
     
+    // update the flash layout
+    MwFim_FlashLayoutUpdate = Main_FlashLayoutUpdate;
+    
     // application init
-    Main_AppInit = Main_AppInit_patch;
+    Sys_AppInit = Main_AppInit_patch;
 }
+
+/*************************************************************************
+* FUNCTION:
+*   Main_FlashLayoutUpdate
+*
+* DESCRIPTION:
+*   update the flash layout
+*
+* PARAMETERS
+*   none
+*
+* RETURNS
+*   none
+*
+*************************************************************************/
+static void Main_FlashLayoutUpdate(void)
+{
+    // update here
+}
+
 
 /*************************************************************************
 * FUNCTION:
@@ -151,10 +178,22 @@ static void __Patch_EntryPoint(void)
 *************************************************************************/
 void App_Pin_InitConfig(void)
 {
+	  E_GpioIdx_t gpioIdx;
+	  T_OPL1000_Gpio *gpioPtr;
     // GPIO2  OUTPUT
-    Hal_Pinmux_Gpio_Init(&OPL1000_periph.gpio[0]);
+	  gpioPtr = &OPL1000_periph.gpio[0];
+    Hal_Pinmux_Gpio_Init(gpioPtr);
+	  gpioIdx = Hal_Pinmux_GetIO(gpioPtr->pin);
+	  printf("GPIO%d is set to OUTPUT and LOW_LEVEL.\n",gpioIdx);
     // GPIO3  OUTPUT
-    Hal_Pinmux_Gpio_Init(&OPL1000_periph.gpio[1]);
+	  gpioPtr = &OPL1000_periph.gpio[1];
+    Hal_Pinmux_Gpio_Init(gpioPtr);
+	  gpioIdx = Hal_Pinmux_GetIO(gpioPtr->pin);		
+	  printf("GPIO%d is set to OUTPUT and LOW_HIGH.\n",gpioIdx);
+	  gpioPtr = &OPL1000_periph.gpio[2];	 
+		Hal_Pinmux_Gpio_Init(gpioPtr);
+	  gpioIdx = Hal_Pinmux_GetIO(gpioPtr->pin);		
+	  printf("GPIO%d is set to OUTPUT and HIGH_LEVEL.\n",gpioIdx);
 }
 
 /*************************************************************************
@@ -171,7 +210,7 @@ void App_Pin_InitConfig(void)
 *   none
 *
 *************************************************************************/
-void Main_AppInit_patch(void)
+static void Main_AppInit_patch(void)
 {
     osThreadDef_t tThreadDef;
     osMessageQDef_t tMessageDef;
@@ -285,15 +324,35 @@ static void Main_AppThread_1(void *argu)
 static void Main_AppThread_2(void *argu)
 {
     uint32_t ulCount = 1;
+    E_GpioLevel_t io_level;
+	  E_GpioIdx_t gpioIdx1,gpioIdx2,gpioIdx3;
+	  T_OPL1000_Gpio *gpioPtr;
 
+	  gpioPtr = &OPL1000_periph.gpio[0];
+	  gpioIdx1 = Hal_Pinmux_GetIO(gpioPtr->pin);
+	  gpioPtr = &OPL1000_periph.gpio[1];
+	  gpioIdx2 = Hal_Pinmux_GetIO(gpioPtr->pin);
+	  gpioPtr = &OPL1000_periph.gpio[2];
+	  gpioIdx3 = Hal_Pinmux_GetIO(gpioPtr->pin);
     while (1)
     {
         printf("Count = %d\n", ulCount);
-        Hal_Vic_GpioOutput(GPIO_IDX_02, (E_GpioLevel_t)(ulCount % 2));
-        Hal_Vic_GpioOutput(GPIO_IDX_03,  (E_GpioLevel_t)(ulCount % 2));
+		    io_level = (E_GpioLevel_t)(ulCount % 2);
+			  if(io_level == GPIO_LEVEL_LOW)
+			      printf("GPIO2/GPIO3 are set to Low \n");
+				else
+					  printf("GPIO2/GPIO3 are set to High \n");
+        Hal_Vic_GpioOutput(gpioIdx1, io_level);
+        Hal_Vic_GpioOutput(gpioIdx2, io_level);
+				io_level = (E_GpioLevel_t)!io_level;
+				if(io_level == GPIO_LEVEL_LOW)
+			      printf("GPIO20 is set to Low \n");
+				else
+					  printf("GPIO20 is set to High \n");
+        Hal_Vic_GpioOutput(gpioIdx3, io_level);				
         ulCount++;
         
-        osDelay(2000);      // delay 2000 ms
+        osDelay(5000);      // delay 5000 ms
     }
 }
 

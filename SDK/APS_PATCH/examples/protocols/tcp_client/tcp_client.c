@@ -31,6 +31,8 @@
 osThreadId app_task_id;
 #define WIFI_READY_TIME 2000
 
+bool g_connection_flag = false;
+
 static char WRITE_STRING[] = "Hello from OPL1000";
 
 static void tcp_client(void)
@@ -45,6 +47,8 @@ static void tcp_client(void)
     struct sockaddr_in serverAdd;  
 		char server_ip[32];
 		int server_port = TCP_SERVER_PORT; 
+	  char recv_buf[128];
+	  int r;
 		
     serverAdd.sin_family = AF_INET; 
 		serverAdd.sin_addr.s_addr = inet_addr(TCP_SERVER_ADDR);  
@@ -52,6 +56,9 @@ static void tcp_client(void)
 
 		strcpy(server_ip,TCP_SERVER_ADDR);
 		
+	  if (g_connection_flag == true) 
+	      printf("Opulinks-TEST-AP connected \r\n");
+	
 		printf("Connect %s at port %d \r\n", server_ip,server_port); 
 		
     while (1) {
@@ -91,7 +98,13 @@ static void tcp_client(void)
             continue;
         }
         printf("... set socket receiving timeout success \r\n");
-
+        do {
+            memset(recv_buf, 0, sizeof(recv_buf));
+            r = read(s, recv_buf, sizeof(recv_buf)-1);
+            for (int i = 0; i < r; i++) {
+                putchar(recv_buf[i]);
+            }
+        } while (r > 0);
         close(s);
 
         printf("Starting again! \r\n");
@@ -100,7 +113,8 @@ static void tcp_client(void)
 
 void user_wifi_app_entry(void *args)
 {
-    
+    g_connection_flag = false;
+	
     /* Tcpip stack and net interface initialization,  dhcp client process initialization. */
     lwip_network_init(WIFI_MODE_STA);
 
@@ -172,7 +186,7 @@ int wifi_connection(void)
 
     } else {
         /* Scan Again */
-        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
+        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
     }
 
     return 0;
@@ -184,7 +198,7 @@ int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
     case WIFI_EVENT_STA_START:
         printf("\r\nWi-Fi Start \r\n");
         wifi_wait_ready();
-        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
+        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
         break;
     case WIFI_EVENT_STA_CONNECTED:
         lwip_net_start(WIFI_MODE_STA);
@@ -192,7 +206,7 @@ int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
         break;
     case WIFI_EVENT_STA_DISCONNECTED:
         printf("\r\nWi-Fi Disconnected \r\n");
-        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
+        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
         break;
     case WIFI_EVENT_SCAN_COMPLETE:
         printf("\r\nWi-Fi Scan Done \r\n");
@@ -201,10 +215,11 @@ int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
     case WIFI_EVENT_STA_GOT_IP:
         printf("\r\nWi-Fi Got IP \r\n");
         lwip_get_ip_info("st1");
+		    g_connection_flag = true;
         break;
     case WIFI_EVENT_STA_CONNECTION_FAILED:
         printf("\r\nWi-Fi Connected failed\r\n");
-        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
+        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
         break;
     default:
         printf("\r\n Unknown Event %d \r\n", event_id);
