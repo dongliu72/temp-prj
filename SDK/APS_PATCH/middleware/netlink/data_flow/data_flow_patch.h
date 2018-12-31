@@ -14,23 +14,14 @@
 
 
 #include "ipc.h"
-#include "data_flow.h"
-#include "controller_wifi.h"
-
-
-#define RF_EVT_TEST_MODE        (RF_EVT_IPC_ENABLE + 1)
-#define RF_EVT_PHY_DUMP         (RF_EVT_IPC_ENABLE + 2)
-#define RF_EVT_RELOAD_OW        (RF_EVT_IPC_ENABLE + 3)
-#define RF_EVT_STORE_OW         (RF_EVT_IPC_ENABLE + 4)
-#define RF_EVT_SHOW_OW          (RF_EVT_IPC_ENABLE + 5)
-#define RF_EVT_ADD_OW           (RF_EVT_IPC_ENABLE + 6)
-#define RF_EVT_DEL_OW           (RF_EVT_IPC_ENABLE + 7)
 
 
 extern T_IpcHandleFp ipc_m0_msg_handle;
 
-int ipc_m0_msg_handle_patch(uint32_t dwType, uint32_t dwIdx, void *pBuf, uint32_t dwBufSize);
+
 int ipc_rf_at_process_M0ToM3_patch(void* pdata);
+int ipc_wifi_aps_rx_handle_patch(uint32_t dwType, uint32_t dwIdx, void *pBuf, uint32_t dwBufSize);
+int ipc_m0_msg_handle_patch(uint32_t dwType, uint32_t dwIdx, void *pBuf, uint32_t dwBufSize);
 
 
 #endif //#ifndef __DATA_FLOW_PATCH_H__

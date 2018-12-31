@@ -77,7 +77,7 @@
  *
  */
 #ifndef AT_RBUF_SIZE
-#define AT_RBUF_SIZE            256
+#define AT_RBUF_SIZE            64
 #endif
 
 /**
@@ -163,13 +163,6 @@ typedef osStatus (*at_task_send_fp_t)(xATMessage txMsg);
 typedef void (*at_task_fp_t)(void *pvParameters);
 
 /**
- * @brief Function Pointer Type for API at_module_init
- *
- */
-typedef void (*at_module_init_fp_t)(uint32_t netconn_max, const char *custom_version);
-
-
-/**
  * @brief Extern Function at_task_cmd_process
  *
  */
@@ -204,13 +197,6 @@ extern at_task_send_fp_t at_task_send;
  *
  */
 extern at_task_fp_t at_task;
-
-
-/**
- * @brief Extern Function at_task
- *
- */
-extern at_module_init_fp_t at_module_init;
 
 /*
  * @brief AT Command Interface Initialization for AT Command Task

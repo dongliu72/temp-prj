@@ -23,13 +23,9 @@
 #include "network_config.h"
 #include "event_loop.h"
 #include "wifi_api.h"
-#include "wifi_mac_task.h"
 
-#include "ps_patch.h"
-#include "lwip/tcpip_patch.h"
-
-extern LWIP_RETDATA sys_sem_t wifi_connected;
-extern LWIP_RETDATA sys_sem_t ip_ready;
+extern sys_sem_t wifi_connected;
+extern sys_sem_t ip_ready;
 
 /*****************************************************************************
  * Private types/enumerations/variables
@@ -39,46 +35,60 @@ extern LWIP_RETDATA sys_sem_t ip_ready;
  * Public types/enumerations/variables
  ****************************************************************************/
 /* NETIF data */
-extern LWIP_RETDATA struct netif netif;
-extern LWIP_RETDATA bool tcpip_inited;
-extern int wakeup_event_timeouts;
+extern struct netif netif;
+
+LWIP_RETDATA bool tcpip_inited;
 
 /*****************************************************************************
  * Private functions declarations
  ****************************************************************************/
+//static void tcpip_init_done( void* arg );
+//static void ip_ready_callback(struct netif *netif);
+
+//static int32_t wifi_station_connected_event_handler(void);
+//static int32_t wifi_station_disconnected_event_handler(void);
 
 /*****************************************************************************
  * Private functions
  ****************************************************************************/
-static int32_t wifi_station_connected_event_handler_patch(void *arg)
+static void ip_ready_callback_patch(struct netif *netif)
 {
-    LWIP_UNUSED_ARG(arg);
-    netif_set_link_up(&netif);
-    sys_sem_signal(&wifi_connected);
+    event_msg_t msg = {0};
+    if (!ip4_addr_isany(netif_ip4_addr(netif))) {
+        char ipaddrstr[16] = {0};
+        ipaddr_ntoa_r(&netif->ip_addr, ipaddrstr, sizeof(ipaddrstr));
+        printf("DHCP got IP:%s\r\n", ipaddrstr);
+        sys_sem_signal(&ip_ready);
 
-    /* reset to initial timeout value (1000 ms) */
-    wakeup_event_timeouts = 1000;
-
-    printf("wifi connected\r\n");
-    return 0;
+        msg.event = WIFI_EVENT_STA_GOT_IP;
+        msg.length = 0;
+        msg.param = NULL;
+        wifi_event_loop_send(&msg);
+    }
+    else
+    {
+        printf("DHCP got Failed\r\n");
+    }
 }
 
-static void lwip_check_timeouts(PS_WAKEUP_TYPE wake_type)
+
+void lwip_net_ready_patch(void)
 {
-    /* set wakeup timeout = BLE maximum adv interval (10s) + 500ms */
-    wakeup_event_timeouts = 10*1000 + 500;
-    tcpip_check_timeouts();
-    return;
+    sys_arch_sem_wait(&wifi_connected, 0);
+    if(dhcp_config_init() == STA_IP_MODE_DHCP) {
+        sys_arch_sem_wait(&ip_ready, 0);
+    }
 }
-/*****************************************************************************
- * Public functions
- ****************************************************************************/
+
 void lwip_network_init_patch(uint8_t opmode)
 {
     LWIP_UNUSED_ARG(opmode);
 
     if (tcpip_inited == false) {
         tcpip_inited = true;
+
+        /* Initialize the LwIP system.  */
+        LWIP_DEBUGF(LWIP_DBG_ON, ("Initialising LwIP " "2.0.0" "\n"));
 
         sys_sem_new(&wifi_connected, 0);
 
@@ -87,20 +97,22 @@ void lwip_network_init_patch(uint8_t opmode)
         }
 
         lwip_tcpip_init();
-
-        /* register check timeouts callback for Smart Sleep */
-        ps_set_wakeup_callback_internal(lwip_check_timeouts);
     }
 }
+
+
+/*****************************************************************************
+ * Public functions
+ ****************************************************************************/
 
 /*-------------------------------------------------------------------------------------
  * Interface assignment
  *------------------------------------------------------------------------------------*/
 void lwip_load_interface_lwip_helper_patch(void)
 {
-    /* Cold boot initialization for "zero_init" retention data */
-
+    tcpip_inited = false;
     lwip_network_init   = lwip_network_init_patch;
-    wifi_station_connected_event_handler    = wifi_station_connected_event_handler_patch;
+    ip_ready_callback   = ip_ready_callback_patch;
+    lwip_net_ready      = lwip_net_ready_patch;
 }
 

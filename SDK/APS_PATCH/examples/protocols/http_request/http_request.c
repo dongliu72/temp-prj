@@ -28,12 +28,9 @@
 #include "lwip/netif.h"
 #include "errno.h"
 
-#include "ps_public.h" 
-
-#define ENABLE_SMART_SLEEP   1 
-
 osThreadId app_task_id;
 #define WIFI_READY_TIME 2000
+
 
 #define WEB_SERVER "example.com"
 #define WEB_PORT 80
@@ -165,36 +162,28 @@ int wifi_do_scan(int mode)
 
 int wifi_connection(void)
 {
-    int iRet = -1;
     wifi_config_t wifi_config = {0};
-    wifi_scan_list_t *p_scan_list = NULL;
-    int i = 0;
+    wifi_scan_list_t scan_list;
+    int i;
     int isMatched = 0;
-		
-    p_scan_list = (wifi_scan_list_t *)malloc(sizeof(wifi_scan_list_t));
 
-    if(p_scan_list == NULL)
-    {
-        goto done;
-    }
-
-    memset(p_scan_list, 0, sizeof(wifi_scan_list_t));
+    memset(&scan_list, 0, sizeof(scan_list));
 
     /* Read Confguration */
     wifi_get_config(WIFI_MODE_STA, &wifi_config);
 
     /* Get APs list */
-    wifi_scan_get_ap_list(p_scan_list);
+    wifi_scan_get_ap_list(&scan_list);
 
     /* Search if AP matched */
-    for (i=0; i< p_scan_list->num; i++) {
-        if (memcmp(p_scan_list->ap_record[i].bssid, wifi_config.sta_config.bssid, WIFI_MAC_ADDRESS_LENGTH) == 0)
+    for (i=0; i< scan_list.num; i++) {
+        if (memcmp(scan_list.ap_record[i].bssid, wifi_config.sta_config.bssid, WIFI_MAC_ADDRESS_LENGTH) == 0)
         {
             isMatched = 1;
             break;
         }
 
-        if (memcmp(p_scan_list->ap_record[i].ssid, wifi_config.sta_config.ssid, wifi_config.sta_config.ssid_length) == 0)
+        if (memcmp(scan_list.ap_record[i].ssid, wifi_config.sta_config.ssid, wifi_config.sta_config.ssid_length) == 0)
         {
             isMatched = 1;
             break;
@@ -207,18 +196,10 @@ int wifi_connection(void)
 
     } else {
         /* Scan Again */
-        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
+        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
     }
 
-    iRet = 0;
-
-done:
-    if(p_scan_list)
-    {
-        free(p_scan_list);
-    }
-
-    return iRet;
+    return 0;
 }
 
 int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
@@ -227,20 +208,15 @@ int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
     case WIFI_EVENT_STA_START:
         printf("\r\nWi-Fi Start \r\n");
         wifi_wait_ready();
-        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
+        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
         break;
     case WIFI_EVENT_STA_CONNECTED:
         lwip_net_start(WIFI_MODE_STA);
         printf("\r\nWi-Fi Connected \r\n");
-		
-#ifdef ENABLE_SMART_SLEEP
-		    printf("\r\nEnable smart sleep \r\n");
-		    ps_smart_sleep(1);
-#endif 				
         break;
     case WIFI_EVENT_STA_DISCONNECTED:
         printf("\r\nWi-Fi Disconnected \r\n");
-        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
+        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
         break;
     case WIFI_EVENT_SCAN_COMPLETE:
         printf("\r\nWi-Fi Scan Done \r\n");
@@ -252,7 +228,7 @@ int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
         break;
     case WIFI_EVENT_STA_CONNECTION_FAILED:
         printf("\r\nWi-Fi Connected failed\r\n");
-        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
+        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
         break;
     default:
         printf("\r\n Unknown Event %d \r\n", event_id);

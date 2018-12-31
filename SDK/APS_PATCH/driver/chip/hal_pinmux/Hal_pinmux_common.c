@@ -11,7 +11,7 @@
 
 #include "Hal_pinmux_common.h"
 
-T_Pin_Unit const pin_map_table[]=
+T_Pin_Unit const table[]=
 {
     {OPL1000_IO2_PIN,GPIO_IDX_02},
     {OPL1000_IO3_PIN,GPIO_IDX_03},
@@ -23,8 +23,6 @@ T_Pin_Unit const pin_map_table[]=
     {OPL1000_IO9_PIN,GPIO_IDX_09},
     {OPL1000_IO10_PIN,GPIO_IDX_10},
     {OPL1000_IO11_PIN,GPIO_IDX_11},
-    {OPL1000_IO16_PIN,GPIO_IDX_16},
-    {OPL1000_IO17_PIN,GPIO_IDX_17},
     {OPL1000_IO18_PIN,GPIO_IDX_18},
     {OPL1000_IO19_PIN,GPIO_IDX_19},
     {OPL1000_IO20_PIN,GPIO_IDX_20},
@@ -160,11 +158,11 @@ T_Pin Hal_Get_Point(uint8_t io,E_OPLXXX_Periph periph_pin)
             break;
     }
     //mapping relationship
-    pin_daul_size = sizeof(pin_map_table) / sizeof(T_Pin_Unit);
+    pin_daul_size = sizeof(table) / sizeof(T_Pin_Unit);
     for(i=0;i<pin_daul_size;i++)
     {
-        //HAL_PINMUX_PRINT("find sour IO =%d,curr sour IO = %d \r\n",io,pin_map_table[i].sour);
-        if(pin_map_table[i].sour == io)
+        //HAL_PINMUX_PRINT("find sour IO =%d,curr sour IO = %d \r\n",io,table[i].sour);
+        if(table[i].sour == io)
         {
             io_index = i;
             break;
@@ -177,8 +175,8 @@ T_Pin Hal_Get_Point(uint8_t io,E_OPLXXX_Periph periph_pin)
 
     for(i=0;i<pin_cnt;i++)
     {
-        //HAL_PINMUX_PRINT("point = %p,find GPIO = %d,curr GPIO = %d \r\n",pin_p,pin_map_table[io_index].dist,(*pin_p).io);
-        if((*pin_p).io == pin_map_table[io_index].dist)
+        //HAL_PINMUX_PRINT("point = %p,find GPIO = %d,curr GPIO = %d \r\n",pin_p,table[io_index].dist,(*pin_p).io);
+        if((*pin_p).io == table[io_index].dist)
         {
             //HAL_PINMUX_PRINT("OPL1000 IO = %d,point entry = %p \r\n",(*pin_p).io,pin_p);
             break;

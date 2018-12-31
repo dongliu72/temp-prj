@@ -23,10 +23,7 @@
  * @brief AT Command Interface Initialization for BLE module
  *
  */
-//void at_cmd_ble_func_init(void);
-
-void _at_cmd_ble_func_init(void);
-int _at_cmd_ble_mode(char *buf, int len, int mode);
+void at_cmd_ble_func_init(void);
 
 #endif //__AT_CMD_BLE_H__
 

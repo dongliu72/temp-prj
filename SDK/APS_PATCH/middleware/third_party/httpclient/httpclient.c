@@ -1,12 +1,12 @@
 /******************************************************************************
-*  Copyright 2017, Netlink Communication Corp.
+*  Copyright 2017 - 2018, Opulinks Technology Ltd.
 *  ---------------------------------------------------------------------------
 *  Statement:
 *  ----------
 *  This software is protected by Copyright and the information contained
 *  herein is confidential. The software may not be copied and the information
 *  contained herein may not be used or disclosed except with the written
-*  permission of Netlink Communication Corp. (C) 2017
+*  permission of Opulinks Technology Ltd. (C) 2018
 ******************************************************************************/
 
 #include <stdlib.h>
@@ -18,7 +18,6 @@
 #include "lwip/netdb.h"
 #include "lwip/tcp.h"
 #include "lwip/err.h"
-#include "lwip/sys.h"
 
 #ifdef HTTPCLIENT_SSL_ENABLE
 #include "mbedtls/debug.h"
@@ -26,9 +25,9 @@
 
 
 #if HTTPCLIENT_DEBUG
-#define ERR(fmt,arg...)   printf(("[HTTPClient]: "fmt"\r\n"), ##arg)
-#define WARN(fmt,arg...)  printf(("[HTTPClient]: "fmt"\r\n"), ##arg)
-#define DBG(fmt,arg...)   printf(("[HTTPClient]: "fmt"\r\n"), ##arg)
+#define ERR(fmt,arg...)   printf(("[HTTPClient]: "fmt), ##arg)
+#define WARN(fmt,arg...)  printf(("[HTTPClient]: "fmt), ##arg)
+#define DBG(fmt,arg...)   printf(("[HTTPClient]: "fmt), ##arg)
 #else
 #define DBG(x, ...)
 #define WARN(x, ...)
@@ -45,8 +44,6 @@
 
 #define HTTPCLIENT_MAX_HOST_LEN   64
 #define HTTPCLIENT_MAX_URL_LEN    256
-
-//#define HTTPCLIENT_TIME_DEBUG  1
 
 #if defined(MBEDTLS_DEBUG_C)
 #define DEBUG_LEVEL 2
@@ -87,114 +84,11 @@ static void httpclient_base64enc(char *out, const char *in)
     out[i] = '\0' ;
 }
 
-static void ms_to_timeval(int timeout_ms, struct timeval *tv)
-{
-    tv->tv_sec = timeout_ms / 1000;
-    tv->tv_usec = (timeout_ms - (tv->tv_sec * 1000)) * 1000;
-}
-
-/*
- * Set the socket blocking or non-blocking
- */
-static int httpclient_net_set_block(httpclient_t *client)
-{
-    return ( fcntl( client->socket, F_SETFL, fcntl( client->socket, F_GETFL, 0 ) & ~O_NONBLOCK ) );
-}
-
-static int httpclient_net_set_nonblock(httpclient_t *client)
-{
-    return ( fcntl( client->socket, F_SETFL, fcntl( client->socket, F_GETFL, 0 ) | O_NONBLOCK ) );
-}
-
-static int httpclient_net_errno(int fd)
-{
-    int sock_errno = 0;
-    socklen_t optlen = sizeof(sock_errno);
-    int err = getsockopt(fd, SOL_SOCKET, SO_ERROR, &sock_errno, &optlen);
-    if (err == -1) {
-        ERR("getsockopt failed: %d", err);
-        return -1;
-    }
-    return sock_errno;
-}
-
-int httpclient_select_check(int sock_fd, int timeout_ms)
-{
-    int ret = 0;
-    int times = 0;
-
-    while (times++ < 1)
-    {
-        fd_set rfds, wfds;
-        struct timeval tv;
-
-        FD_ZERO(&rfds);
-        FD_ZERO(&wfds);
-        FD_SET(sock_fd, &rfds);
-        FD_SET(sock_fd, &wfds);
-
-        /* set select() time out */
-        tv.tv_sec = timeout_ms / 1000;
-        tv.tv_usec = (timeout_ms % 1000) * 1000;
-
-        int selres = select(sock_fd + 1, &rfds, &wfds, NULL, &tv);
-        switch (selres)
-        {
-        case -1:
-            ERR("select error");
-            ret = -1;
-            break;
-        case 0:
-            ERR("select time out");
-            ret = -1;
-            break;
-        default:
-            if (FD_ISSET(sock_fd, &rfds) || FD_ISSET(sock_fd, &wfds))
-            {
-                int error;
-                socklen_t errlen = sizeof(error);
-                if (-1 == getsockopt(sock_fd, SOL_SOCKET, SO_ERROR, &error, &errlen))
-                {
-                    ERR("getsockopt error return -1.");
-                    ret = -1;
-                    break;
-                }
-                else if (0 != error)
-                {
-                    ERR("getsockopt return errinfo = %d", error);
-                    ret = -1;
-                    break;
-                }
-
-                ret = 0;
-                DBG("connect finish...");
-            }
-            else
-            {
-                DBG("haha");
-            }
-        }
-
-        if (-1 != selres && (ret != 0))
-        {
-            DBG("check connect result again... %d", times);
-            continue;
-        }
-        else
-        {
-            break;
-        }
-    }
-
-    return ret;
-}
-
 int httpclient_conn(httpclient_t *client, char *host)
 {
     struct addrinfo hints, *addr_list, *cur;
     int ret = 0;
     char port[10] = {0};
-    int errno = 0;
 
     memset( &hints, 0, sizeof( hints ) );
     hints.ai_family = AF_UNSPEC;
@@ -217,57 +111,20 @@ int httpclient_conn(httpclient_t *client, char *host)
             continue;
         }
 
-        if (client->timeout_ms == 0) //default
-        {
-            if ( connect( client->socket, cur->ai_addr, (int)cur->ai_addrlen ) == 0 ) {
-                ret = 0;
-                break;
-            }
-
-            close( client->socket );
-            ret = HTTPCLIENT_ERROR_CONN;
+        if ( connect( client->socket, cur->ai_addr, (int)cur->ai_addrlen ) == 0 ) {
+            ret = 0;
+            break;
         }
-        else
-        {
-            /* set non-blocking mode on socket*/
-            httpclient_net_set_nonblock(client);
 
-            /* This call will not block */
-            if ( connect( client->socket, cur->ai_addr, (int)cur->ai_addrlen ) == 0 ) {
-                ret = 0;
-                DBG("socket connect succeed immediately");
-                httpclient_net_set_block(client);
-                break;
-            }
-            else
-            {
-                DBG("get the connect result by select()");
-                errno = httpclient_net_errno(client->socket);
-                if (errno == EINPROGRESS)
-                {
-                    httpclient_net_set_block(client);
-                    if (httpclient_select_check(client->socket, client->timeout_ms) == 0)
-                    {
-                        ret = 0;
-                        break;
-                    }
-                }
-                else
-                {
-                   DBG("connect to host %s:%d failed");
-                   ret = errno;
-                }
-            }
-
-            close( client->socket );
-            ret = HTTPCLIENT_ERROR_CONN;
-        }
+        close( client->socket );
+        ret = HTTPCLIENT_ERROR_CONN;
     }
 
     freeaddrinfo( addr_list );
 
     return ret;
 }
+
 
 int httpclient_parse_url(const char *url, char *scheme, size_t max_scheme_len, char *host, size_t maxhost_len, int *port, char *path, size_t max_path_len)
 {
@@ -580,10 +437,6 @@ int httpclient_recv(httpclient_t *client, char *buf, int min_len, int max_len, i
 {
     int ret = 0;
     size_t readLen = 0;
-    struct timeval tv;
-
-    ms_to_timeval(client->timeout_ms, &tv);
-    setsockopt(client->socket, SOL_SOCKET, SO_RCVTIMEO, &tv, sizeof(tv));
 
     while (readLen < max_len) {
         buf[readLen] = '\0';
@@ -922,17 +775,13 @@ int httpclient_response_parse(httpclient_t *client, char *data, int len, httpcli
     return httpclient_retrieve_content(client, data, len, client_data);
 }
 
+
 HTTPCLIENT_RESULT httpclient_connect(httpclient_t *client, char *url)
 {
     int ret = HTTPCLIENT_ERROR_CONN;
     char host[HTTPCLIENT_MAX_HOST_LEN] = {0};
     char scheme[8] = {0};
     char path[HTTPCLIENT_MAX_URL_LEN] = {0};
-
-#ifdef HTTPCLIENT_TIME_DEBUG
-    int start_time = 0;
-    int end_time = 0;
-#endif
 
     /* First we need to parse the url (http[s]://host[:port][/[path]]) */
     int res = httpclient_parse_url(url, scheme, sizeof(scheme), host, sizeof(host), &(client->remote_port), path, sizeof(path));
@@ -958,9 +807,6 @@ HTTPCLIENT_RESULT httpclient_connect(httpclient_t *client, char *url)
 
     DBG("http?:%d, port:%d, host:%s", client->is_http, client->remote_port, host);
 
-#ifdef HTTPCLIENT_TIME_DEBUG
-    start_time = sys_now();
-#endif
     client->socket = -1;
     if (client->is_http)
         ret = httpclient_conn(client, host);
@@ -972,11 +818,6 @@ HTTPCLIENT_RESULT httpclient_connect(httpclient_t *client, char *url)
             client->socket = ssl->net_ctx.fd;
         }
     }
-#endif
-
-#ifdef HTTPCLIENT_TIME_DEBUG
-    end_time = sys_now();
-    printf("client connect time =%d\r\n", end_time - start_time);
 #endif
 
     DBG("httpclient_connect() result:%d, client:%p", ret, client);
@@ -1059,9 +900,6 @@ int httpclient_get_response_code(httpclient_t *client)
 static HTTPCLIENT_RESULT httpclient_common(httpclient_t *client, char *url, int method, httpclient_data_t *client_data)
 {
     HTTPCLIENT_RESULT ret = HTTPCLIENT_ERROR_CONN;
-#ifdef HTTPCLIENT_TIME_DEBUG
-    int start_time, end_time;
-#endif
 
     ret = httpclient_connect(client, url);
 
@@ -1069,18 +907,12 @@ static HTTPCLIENT_RESULT httpclient_common(httpclient_t *client, char *url, int 
         ret = httpclient_send_request(client, url, method, client_data);
 
         if (!ret) {
-#ifdef HTTPCLIENT_TIME_DEBUG
-            start_time = sys_now();
-#endif
             ret = httpclient_recv_response(client, client_data);
-#ifdef HTTPCLIENT_TIME_DEBUG
-            end_time = sys_now();
-            printf("recv_response time =%d\r\n", end_time - start_time);
-#endif
         }
     }
 
     httpclient_close(client);
+
     return ret;
 }
 

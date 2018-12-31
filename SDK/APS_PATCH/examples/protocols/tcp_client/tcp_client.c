@@ -28,14 +28,10 @@
 #include "lwip/netif.h"
 #include "errno.h"
 
-#include "ps_public.h"
-
 osThreadId app_task_id;
 #define WIFI_READY_TIME 2000
 
-bool g_connection_flag = false;
-
-static uint32_t g_ulRcvCount = 0;
+static char WRITE_STRING[] = "Hello from OPL1000";
 
 static void tcp_client(void)
 {
@@ -49,8 +45,6 @@ static void tcp_client(void)
     struct sockaddr_in serverAdd;  
 		char server_ip[32];
 		int server_port = TCP_SERVER_PORT; 
-    char recv_buf[256];
-	  int r;
 		
     serverAdd.sin_family = AF_INET; 
 		serverAdd.sin_addr.s_addr = inet_addr(TCP_SERVER_ADDR);  
@@ -58,9 +52,6 @@ static void tcp_client(void)
 
 		strcpy(server_ip,TCP_SERVER_ADDR);
 		
-	  if (g_connection_flag == true) 
-	      printf("Opulinks-TEST-AP connected \r\n");
-	
 		printf("Connect %s at port %d \r\n", server_ip,server_port); 
 		
     while (1) {
@@ -81,8 +72,16 @@ static void tcp_client(void)
 
         printf("... connected \r\n");
 
+        if (write(s, WRITE_STRING, strlen(WRITE_STRING)) < 0) {
+            printf("... socket send failed \r\n");
+            close(s);
+            osDelay(4000);
+            continue;
+        }
+        printf("... socket send [%s] success \r\n",WRITE_STRING);
+
         struct timeval receiving_timeout;
-        receiving_timeout.tv_sec = TCP_RECV_TIMEOUT;
+        receiving_timeout.tv_sec = 5;
         receiving_timeout.tv_usec = 0;
         if (setsockopt(s, SOL_SOCKET, SO_RCVTIMEO, &receiving_timeout,
                 sizeof(receiving_timeout)) < 0) {
@@ -92,22 +91,7 @@ static void tcp_client(void)
             continue;
         }
         printf("... set socket receiving timeout success \r\n");
-        do {
-            memset(recv_buf, 0, sizeof(recv_buf));
-            r = read(s, recv_buf, sizeof(recv_buf)-1);
-            
-            if (r > 0) {
-                g_ulRcvCount++;
-                printf("Rcv %u\n", g_ulRcvCount);
-            
-                if (write(s, recv_buf, strlen(recv_buf)) < 0) {
-                    printf("... socket send failed \r\n");
-                    close(s);
-                    osDelay(4000);
-                    continue;
-                }
-            }
-        } while (r > 0);
+
         close(s);
 
         printf("Starting again! \r\n");
@@ -116,11 +100,7 @@ static void tcp_client(void)
 
 void user_wifi_app_entry(void *args)
 {
-    g_connection_flag = false;
-#if defined(__RF_LP_MODE__)
-  	unsigned char rf_level = 0x0F;
-#endif
-	
+    
     /* Tcpip stack and net interface initialization,  dhcp client process initialization. */
     lwip_network_init(WIFI_MODE_STA);
 
@@ -128,15 +108,6 @@ void user_wifi_app_entry(void *args)
     lwip_net_ready();
 
     osDelay(500);
-
-#if defined(__RF_LP_MODE__)
-	  //set to low power mode.
-	  set_rf_power_level(rf_level);
-#endif
-	
-    wifi_config_set_skip_dtim(DTIM_SKIP_COUNT, false);
-    
-    ps_smart_sleep(POWER_SAVE_EN);
 
     tcp_client();
 }
@@ -167,36 +138,28 @@ int wifi_do_scan(int mode)
 
 int wifi_connection(void)
 {
-    int iRet = -1;
     wifi_config_t wifi_config = {0};
-    wifi_scan_list_t *p_scan_list = NULL;
-    int i = 0;
+    wifi_scan_list_t scan_list;
+    int i;
     int isMatched = 0;
-		
-    p_scan_list = (wifi_scan_list_t *)malloc(sizeof(wifi_scan_list_t));
 
-    if(p_scan_list == NULL)
-    {
-        goto done;
-    }
-
-    memset(p_scan_list, 0, sizeof(wifi_scan_list_t));
+    memset(&scan_list, 0, sizeof(scan_list));
 
     /* Read Confguration */
     wifi_get_config(WIFI_MODE_STA, &wifi_config);
 
     /* Get APs list */
-    wifi_scan_get_ap_list(p_scan_list);
+    wifi_scan_get_ap_list(&scan_list);
 
     /* Search if AP matched */
-    for (i=0; i< p_scan_list->num; i++) {
-        if (memcmp(p_scan_list->ap_record[i].bssid, wifi_config.sta_config.bssid, WIFI_MAC_ADDRESS_LENGTH) == 0)
+    for (i=0; i< scan_list.num; i++) {
+        if (memcmp(scan_list.ap_record[i].bssid, wifi_config.sta_config.bssid, WIFI_MAC_ADDRESS_LENGTH) == 0)
         {
             isMatched = 1;
             break;
         }
 
-        if (memcmp(p_scan_list->ap_record[i].ssid, wifi_config.sta_config.ssid, wifi_config.sta_config.ssid_length) == 0)
+        if (memcmp(scan_list.ap_record[i].ssid, wifi_config.sta_config.ssid, wifi_config.sta_config.ssid_length) == 0)
         {
             isMatched = 1;
             break;
@@ -209,18 +172,10 @@ int wifi_connection(void)
 
     } else {
         /* Scan Again */
-        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
+        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
     }
 
-    iRet = 0;
-
-done:
-    if(p_scan_list)
-    {
-        free(p_scan_list);
-    }
-
-    return iRet;
+    return 0;
 }
 
 int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
@@ -229,7 +184,7 @@ int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
     case WIFI_EVENT_STA_START:
         printf("\r\nWi-Fi Start \r\n");
         wifi_wait_ready();
-        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
+        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
         break;
     case WIFI_EVENT_STA_CONNECTED:
         lwip_net_start(WIFI_MODE_STA);
@@ -237,7 +192,7 @@ int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
         break;
     case WIFI_EVENT_STA_DISCONNECTED:
         printf("\r\nWi-Fi Disconnected \r\n");
-        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
+        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
         break;
     case WIFI_EVENT_SCAN_COMPLETE:
         printf("\r\nWi-Fi Scan Done \r\n");
@@ -246,11 +201,10 @@ int wifi_event_handler_cb(wifi_event_id_t event_id, void *data, uint16_t length)
     case WIFI_EVENT_STA_GOT_IP:
         printf("\r\nWi-Fi Got IP \r\n");
         lwip_get_ip_info("st1");
-		    g_connection_flag = true;
         break;
     case WIFI_EVENT_STA_CONNECTION_FAILED:
         printf("\r\nWi-Fi Connected failed\r\n");
-        wifi_do_scan(WIFI_SCAN_TYPE_MIX);
+        wifi_do_scan(WIFI_SCAN_TYPE_ACTIVE);
         break;
     default:
         printf("\r\n Unknown Event %d \r\n", event_id);
