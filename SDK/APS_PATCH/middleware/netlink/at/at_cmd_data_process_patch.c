@@ -30,6 +30,9 @@
 #include "at_cmd_task.h"
 //#include "le_cmd_app_cmd.h"
 #include "at_cmd_ble_patch.h"
+#include "at_cmd_func_patch.h"
+#include "at_cmd_data_process_patch.h"
+#include "at_cmd_task_patch.h"
 
 typedef bool (*T_LeHostProcessHostTestCmdFp)(char* pszData, int dataLen);
 
@@ -40,7 +43,11 @@ extern T_LeHostProcessHostTestCmdFp LeHostProcessHostTestCmd;
  * @brief Global variable gp_at_cmd_ext_table retention attribute segment
  *
  */
+#ifdef AT_CMD_EXT_TBL_LST
+T_CmdTblLst g_tAtCmdExtTblLst = {0};
+#else
 RET_DATA _at_command_t *gp_at_cmd_ext_table;
+#endif
 
 extern int g_at_lock;
 extern int g_at_ble_data_len;
@@ -54,6 +61,10 @@ extern _at_command_t *_g_AtCmdTbl_Sys_Ptr;
 extern _at_command_t *_g_AtCmdTbl_Rf_Ptr;
 
 uint8_t cmd_info_buf[AT_RBUF_SIZE];
+
+uint32_t g_u32AtAppDataMax = 0;
+uint32_t g_u32AtAppDataCurr = 0;
+uint32_t g_u32AtAppDataOffset = 0;
 
 typedef struct {
     uint8_t *cmd;
@@ -142,6 +153,7 @@ int data_process_tcpip_patch(char *pbuf, int len, int mode)
 
 	return false;
 }
+
 #if defined(__AT_CMD_SUPPORT__)
 int data_process_sys_patch(char *pbuf, int len, int mode)
 {
@@ -162,6 +174,7 @@ int data_process_sys_patch(char *pbuf, int len, int mode)
     return false;
 }
 #endif //#if defined(__AT_CMD_SUPPORT__)
+
 int data_process_rf_patch(char *pbuf, int len, int mode)
 {
     const _at_command_t *cmd_ptr = NULL;
@@ -180,6 +193,7 @@ int data_process_rf_patch(char *pbuf, int len, int mode)
 
     return false;
 }
+
 #if defined(__AT_CMD_SUPPORT__)
 int data_process_pip_patch(char *pbuf, int len, int mode)
 {
@@ -198,7 +212,113 @@ int data_process_others_patch(char *pbuf, int len, int mode)
 
     return false;
 }
-#endif
+/*
+void data_process_lock_patch(int module, int data_len)
+{
+    switch(module)
+    {
+        case LOCK_BLE:
+            g_at_lock = LOCK_BLE;
+            g_at_ble_data_len = data_len;
+            at_state = AT_STATE_SENDING_RECV;
+            break;
+
+        case LOCK_TCPIP:
+            g_at_lock = LOCK_TCPIP;
+        
+            if (data_len == AT_TCP_TRANS_LOCK_ID) {
+                g_at_tcpip_data_len = 0;
+                at_state = AT_STATE_TRANSMIT;
+            }
+            else {
+                g_at_tcpip_data_len = data_len;
+                at_state = AT_STATE_SENDING_RECV;
+            }
+            break;
+
+        case LOCK_NONE:
+            data_process_init();
+            break;
+
+        default:
+            g_at_lock = LOCK_NONE;
+            break;
+    }
+}
+*/
+#endif /* #if defined(__AT_CMD_SUPPORT__) */
+
+void data_process_lock_patch(int module, int data_len)
+{
+    switch(module)
+    {
+        case LOCK_BLE:
+            g_at_lock = LOCK_BLE;
+            g_at_ble_data_len = data_len;
+            at_state = AT_STATE_SENDING_RECV;
+            break;
+
+        case LOCK_TCPIP:
+            g_at_lock = LOCK_TCPIP;
+        
+            if (data_len == AT_TCP_TRANS_LOCK_ID) {
+                g_at_tcpip_data_len = 0;
+                at_state = AT_STATE_TRANSMIT;
+            }
+            else {
+                g_at_tcpip_data_len = data_len;
+                at_state = AT_STATE_SENDING_RECV;
+            }
+            break;
+
+        case LOCK_OTHERS:
+            g_at_lock = LOCK_OTHERS;
+            g_u32AtAppDataMax = data_len;
+            g_u32AtAppDataCurr = 0;
+            g_u32AtAppDataOffset = 0;
+            at_state = AT_STATE_SENDING_RECV;
+            break;
+
+        case LOCK_NONE:
+            data_process_init();
+            break;
+
+        default:
+            g_at_lock = LOCK_NONE;
+            break;
+    }
+}
+
+#ifdef AT_CMD_EXT_TBL_LST
+int data_process_extend_func(char *pbuf, int len, int mode)
+{
+    int iRet = 0;
+    T_CmdTblLst *ptLst = NULL;
+    const _at_command_t *cmd_ptr = NULL;
+
+    if(pbuf == 0)
+    {
+        goto done;
+    }
+
+    for(ptLst = &g_tAtCmdExtTblLst; ptLst != NULL; ptLst = ptLst->ptNext)
+    {
+        for(cmd_ptr = ptLst->taCmdTbl; cmd_ptr->cmd; cmd_ptr++)
+        {
+            if(strcasecmp((char*)at_cmd_info.cmd, cmd_ptr->cmd) == 0)
+            {
+                msg_print_uart1("\r\n");
+                cmd_ptr->cmd_handle(pbuf, len, mode);
+                iRet = 1;
+                goto done;
+            }
+        }
+    }
+    
+done:
+    return iRet;
+}
+#else
 int data_process_extend_func(char *pbuf, int len, int mode)
 {
     const _at_command_t *cmd_ptr = NULL;
@@ -217,6 +337,7 @@ int data_process_extend_func(char *pbuf, int len, int mode)
 
     return false;
 }
+#endif /* #ifdef AT_CMD_EXT_TBL_LST */
 
 bool at_cmd_info_parsing(uint8_t *pStr, at_cmd_information_t *at_info_ptr)
 {
@@ -358,7 +479,10 @@ int data_process_handler_impl(char *pbuf, int len)
             return true;
     #endif
         if (data_process_ble_patch(pbuf, len, mode))
+        {
+            at_cmd_crlf_term_set(1); // Enable CR-LF termination for BLE AT commands
             return true;
+        }
 
         if (data_process_tcpip_patch(pbuf, len, mode))
             return true;
@@ -381,4 +505,3 @@ void data_process_func_init_patch(void)
     g_at_ble_data_len = 0;
     g_at_tcpip_data_len = 0;
 }
-

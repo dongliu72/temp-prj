@@ -60,6 +60,8 @@ typedef enum {
     BLEWIFI_REQ_MP_CAL_VBAT,
     BLEWIFI_REQ_MP_CAL_IO_VOLTAGE,
     BLEWIFI_REQ_MP_CAL_TMPR,
+    BLEWIFI_REQ_MP_SYS_MODE_WRITE,
+    BLEWIFI_REQ_MP_SYS_MODE_READ,
 
     BLEWIFI_REQ_ENG_START = 0x600,
     BLEWIFI_REQ_ENG_SYS_RESET,
@@ -67,6 +69,7 @@ typedef enum {
     BLEWIFI_REQ_ENG_WIFI_MAC_READ,
     BLEWIFI_REQ_ENG_BLE_MAC_WRITE,
     BLEWIFI_REQ_ENG_BLE_MAC_READ,
+    BLEWIFI_REQ_ENG_BLE_CMD,
 
     BLEWIFI_REQ_APP_START = 0x800,
 
@@ -93,6 +96,8 @@ typedef enum {
     BLEWIFI_RSP_MP_CAL_VBAT,
     BLEWIFI_RSP_MP_CAL_IO_VOLTAGE,
     BLEWIFI_RSP_MP_CAL_TMPR,
+    BLEWIFI_RSP_MP_SYS_MODE_WRITE,
+    BLEWIFI_RSP_MP_SYS_MODE_READ,
 
     BLEWIFI_RSP_ENG_START = 0x1600,
     BLEWIFI_RSP_ENG_SYS_RESET,
@@ -100,6 +105,7 @@ typedef enum {
     BLEWIFI_RSP_ENG_WIFI_MAC_READ,
     BLEWIFI_RSP_ENG_BLE_MAC_WRITE,
     BLEWIFI_RSP_ENG_BLE_MAC_READ,
+    BLEWIFI_RSP_ENG_BLE_CMD,
 
     BLEWIFI_RSP_APP_START = 0x1800,
 
@@ -115,6 +121,13 @@ typedef struct blewifi_hdr_tag
     uint16_t data_len;
     uint8_t  data[]; //variable size
 }blewifi_hdr_t;
+
+typedef void (*T_BleWifi_Ble_ProtocolHandler_Fp)(uint16_t type, uint8_t *data, int len);
+typedef struct
+{
+    uint32_t ulEventId;
+    T_BleWifi_Ble_ProtocolHandler_Fp fpFunc;
+} T_BleWifi_Ble_ProtocolHandlerTbl;
 
 void BleWifi_Ble_DataRecvHandler(uint8_t *data, int len);
 void BleWifi_Ble_DataSendEncap(uint16_t type_id, uint8_t *data, int total_data_len);

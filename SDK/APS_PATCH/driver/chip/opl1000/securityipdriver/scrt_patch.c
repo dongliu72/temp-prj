@@ -23,6 +23,7 @@
 #include "scrt_cmd.h"
 #include "scrt_patch.h"
 #include "scrt_cmd_patch.h"
+#include "hal_system.h"
 
 
 // idx: T_ScrtMbIdx
@@ -90,9 +91,8 @@
     #define SCRT_ASSERT(...)
 #endif
 
-#define SCRT_SYS_CLK_REG    0x40001134
-#define SCRT_OTP_CLK_MSK    (1 << 16)
-#define SCRT_IP_CLK_MSK     (1 << 24)
+#define SCRT_IP_CLK_MSK     (0x00000001)
+#define SCRT_OTP_CLK_MSK    (0x00000002)
 
 
 typedef enum
@@ -1439,15 +1439,14 @@ done:
 
 void scrt_clk_enable(uint8_t u8Enable, uint32_t u32Msk)
 {
-    volatile uint32_t *pu32Reg = (uint32_t *)SCRT_SYS_CLK_REG;
-    
-    if(u8Enable)
+    if(u32Msk & SCRT_IP_CLK_MSK)
     {
-        *pu32Reg = *pu32Reg | u32Msk;
+        Hal_Sys_ApsClkEn(u8Enable, APS_CLK_SCRT);
     }
-    else
+
+    if(u32Msk & SCRT_OTP_CLK_MSK)
     {
-        *pu32Reg = *pu32Reg & ~(u32Msk);
+        Hal_Sys_ApsClkEn(u8Enable, APS_CLK_OTP);
     }
 
     return;
@@ -1456,6 +1455,8 @@ void scrt_clk_enable(uint8_t u8Enable, uint32_t u32Msk)
 int nl_scrt_init_patch(void)
 {
     int iRet = 0;
+
+    scrt_clk_enable(1, (SCRT_OTP_CLK_MSK | SCRT_IP_CLK_MSK));
 
     if(scrt_param_init())
     {
@@ -1469,8 +1470,6 @@ int nl_scrt_init_patch(void)
         goto done;
     }
 
-    scrt_clk_enable(1, (SCRT_OTP_CLK_MSK | SCRT_IP_CLK_MSK));
-
     if(scrt_mb_init())
     {
         SCRT_LOGE("[%s %d] scrt_mb_init fail\n", __func__, __LINE__);
@@ -1480,7 +1479,7 @@ int nl_scrt_init_patch(void)
     iRet = 1;
 
 done:
-    scrt_clk_enable(0, (SCRT_OTP_CLK_MSK | SCRT_IP_CLK_MSK));
+    //scrt_clk_enable(0, (SCRT_OTP_CLK_MSK | SCRT_IP_CLK_MSK));
     return iRet;
 }
 
@@ -1557,6 +1556,41 @@ uint8_t scrt_res_alloc_patch(void)
     return u8Idx;
 }
 
+int scrt_mb_init_patch(void)
+{
+    int iRet = -1;
+    volatile uint32_t *u32Status = (uint32_t *)SCRT_STAT_CTRL_ADDR;
+    uint8_t u8AvailCnt = 0;
+    uint8_t i = 0;
+
+    for(i = SCRT_MB_IDX_0; i < SCRT_MB_IDX_MAX; i++)
+    {
+        uint32_t u32Mask = SCRT_STATUS_WRITE_MSK(i) | SCRT_STATUS_READ_MSK (i) | SCRT_STATUS_LINK_MSK(i) | SCRT_STATUS_AVAIL_MSK(i);
+
+        if((*u32Status & u32Mask) != SCRT_STATUS_AVAIL_MSK(i))
+        {
+            if(!Hal_Sys_ApsModuleRst(ASP_RST_SCRT))
+            {
+                iRet = 0;
+                break;
+            }
+
+            SCRT_LOGE("[%s %d] Hal_Sys_ApsModuleRst(ASP_RST_SCRT) fail\n", __func__, __LINE__);
+        }
+        else
+        {
+            ++u8AvailCnt;
+        }
+    }
+
+    if(u8AvailCnt == SCRT_MB_IDX_MAX)
+    {
+        iRet = 0;
+    }
+
+    return iRet;
+}
+
 /*
  * scrt_drv_func_init - Interface Initialization: SCRT
  *
@@ -1570,6 +1604,7 @@ void scrt_drv_func_init_patch(void)
     nl_scrt_Init = nl_scrt_init_patch;
     nl_scrt_otp_status_get = nl_scrt_otp_status_get_patch;
     scrt_res_alloc = scrt_res_alloc_patch;
+    scrt_mb_init = scrt_mb_init_patch;
 
     #ifdef SCRT_CMD_PATCH
     nl_scrt_cmd_func_init_patch();

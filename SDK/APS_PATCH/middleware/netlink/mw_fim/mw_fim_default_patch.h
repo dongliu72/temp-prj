@@ -31,8 +31,8 @@ extern "C" {
 
 // the version of group
 #define MW_FIM_VER00_PATCH      0x01    // reserve for swap
-#define MW_FIM_VER01_PATCH      0x0A    // system & driver
-#define MW_FIM_VER02_PATCH      0x07    // for WIFI & TCPIP
+#define MW_FIM_VER01_PATCH      0x0C    // system & driver
+#define MW_FIM_VER02_PATCH      0x09    // for WIFI & TCPIP
 #define MW_FIM_VER03_PATCH      0x06    // calibration data
 #define MW_FIM_VER04_PATCH      0x05    // for LE Controller
 #define MW_FIM_VER05_PATCH      0x01

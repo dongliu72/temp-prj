@@ -1,38 +1,16 @@
-## Function / Feature
-- This reference realizes temperature measurement and uploading to cloud periodically function. 
-- Ali could MQTT protocol is supported.
-- Single chip solution, application runs on OPL1000 M3 MCU.
-- Adopt BLE configure WIFI AP to connect Internet / cloud. 
-- Smart sleep and auto-connection are support. 
-- Easy to configure work parameter by ParamCfg.exe tool. 
-- Automatically complete project compile and download operation.  
+## Function
+This demo shows how to use (Android) mobile APP to control OPL1000 completes BLE configure WIFI AP and upgrade firmware through BLE path.  Example source code locates at SDK\APS_PATCH\examples\system\blewifi.
 
-## Demo video
-[*Opulinks sensor demo @ Youku*](https://v.youku.com/v_show/id_XNDA4NjEyNTgxNg==.html?spm=a2h3j.8428770.3416059.1)
+## Content
+1. OPL1000-Demo-BLE-setup-network-guide.pdf: Guide document of how to run this demo. 
+2. opulinks_iot_app.apk: Android mobile APP program. 
+3. opulinks_iot_app_src.zip: Android mobile APP source code.
+4. opl1000_ota.bin: firmware of this demo. User can download it into OPL1000 device. 
 
-## Work Frame
-![avatar](sensor_frame.PNG)
+## Note 
+(1) Device default BLE name is OPL_33:44:55:66 
+(2) In order to use BLE OTA function, user need to store upgrade firmware (OTA format) into mobile in advance.      
 
-## Directory and Content 
 
-**app** folder
 
-- Contains Ali cloud app and project configuration ini file. 
-
-**prj_src** folder
-
-- Contains reference design source code, include library, implementation c code and project files. 
-
-**Doc** folder
-
-- Contains application guide document. 
-
-## Develop application based on reference
-
-User can develop sensor type application based on provided reference design. Generally it includes 4 steps.
-
-1.  Register and create product/device on Ali cloud, define its property and get  "3 element set" parameters for application development. 
-2.  Modify / extend functions based on existing reference design.
-3.  Create Ali cloud APP and hook IOT devices to this App. 
-4.  Verify message transferring  between IOT device, cloud and mobile APP, and validate functions / features.  
 

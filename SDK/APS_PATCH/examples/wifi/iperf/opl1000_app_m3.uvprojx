@@ -15,7 +15,7 @@
         <TargetCommonOption>
           <Device>ARMCM3</Device>
           <Vendor>ARM</Vendor>
-          <PackID>ARM.CMSIS.5.1.1</PackID>
+          <PackID>ARM.CMSIS.4.5.0</PackID>
           <PackURL>http://www.keil.com/pack/</PackURL>
           <Cpu>IRAM(0x20000000,0x20000) IROM(0x00000000,0x40000) CPUTYPE("Cortex-M3") CLOCK(12000000) ESEL ELITTLE</Cpu>
           <FlashUtilSpec></FlashUtilSpec>
@@ -388,14 +388,24 @@
               <FilePath>.\src\iperf_example_main.c</FilePath>
             </File>
             <File>
-              <FileName>cmd_wifi.c</FileName>
+              <FileName>cmd_parser.c</FileName>
               <FileType>1</FileType>
-              <FilePath>.\src\cmd_wifi.c</FilePath>
+              <FilePath>.\src\cmd_parser.c</FilePath>
             </File>
             <File>
               <FileName>console.c</FileName>
               <FileType>1</FileType>
               <FilePath>.\src\components\console.c</FilePath>
+            </File>
+            <File>
+              <FileName>common_cli.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\common_cli.c</FilePath>
+            </File>
+            <File>
+              <FileName>wifi_cli.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>.\src\wifi_cli.c</FilePath>
             </File>
             <File>
               <FileName>iperf_cli.c</FileName>

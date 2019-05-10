@@ -23,19 +23,22 @@
 #include <stdint.h>
 #include <stdbool.h>
 #include "blewifi_configuration.h"
+#include "mw_fim_default_group08.h"
+#include "mw_fim_default_group08_project.h"
 
 #define BLEWIFI_CTRL_QUEUE_SIZE         (20)
 
 typedef enum blewifi_ctrl_msg_type
 {
     /* BLE Trigger */
-    BLEWIFI_CTRL_MSG_BLE_INIT_COMPLETE = 0,     //BLE report status
-    BLEWIFI_CTRL_MSG_BLE_ADVERTISING_CFM,       //BLE report status
-    BLEWIFI_CTRL_MSG_BLE_ADVERTISING_EXIT_CFM,  //BLE report status
-    BLEWIFI_CTRL_MSG_BLE_CONNECTION_COMPLETE,   //BLE report status
-    BLEWIFI_CTRL_MSG_BLE_CONNECTION_FAIL,       //BLE report status
-    BLEWIFI_CTRL_MSG_BLE_DISCONNECT,            //BLE report status
-    BLEWIFI_CTRL_MSG_BLE_DATA_IND,              //BLE receive the data from peer to device
+    BLEWIFI_CTRL_MSG_BLE_INIT_COMPLETE = 0,             //BLE report status
+    BLEWIFI_CTRL_MSG_BLE_ADVERTISING_CFM,               //BLE report status
+    BLEWIFI_CTRL_MSG_BLE_ADVERTISING_EXIT_CFM,          //BLE report status
+    BLEWIFI_CTRL_MSG_BLE_ADVERTISING_TIME_CHANGE_CFM,   //BLE report status
+    BLEWIFI_CTRL_MSG_BLE_CONNECTION_COMPLETE,           //BLE report status
+    BLEWIFI_CTRL_MSG_BLE_CONNECTION_FAIL,               //BLE report status
+    BLEWIFI_CTRL_MSG_BLE_DISCONNECT,                    //BLE report status
+    BLEWIFI_CTRL_MSG_BLE_DATA_IND,                      //BLE receive the data from peer to device
 
     BLEWIFI_CTRL_MSG_BLE_NUM,
 
@@ -57,22 +60,27 @@ typedef enum blewifi_ctrl_msg_type
     BLEWIFI_CTRL_MSG_OTHER__NUM
 } blewifi_ctrl_msg_type_e;
 
-typedef enum blewifi_ctrl_auto_conn_state
-{
-    BLEWIFI_CTRL_AUTO_CONN_STATE_IDLE = (BLEWIFI_WIFI_REQ_CONNECT_RETRY_TIMES + 1),
-    BLEWIFI_CTRL_AUTO_CONN_STATE_SCAN,
-
-    BLEWIFI_CTRL_AUTO_CONN_STATE_NUM
-} blewifi_ctrl_auto_conn_state_e;
-
 typedef struct
 {
     uint32_t event;
-	uint32_t length;
-	uint8_t *pcMessage;
+    uint32_t length;
+    uint8_t ucaMessage[];
 } xBleWifiCtrlMessage_t;
 
+typedef void (*T_BleWifi_Ctrl_EvtHandler_Fp)(uint32_t evt_type, void *data, int len);
+typedef struct
+{
+    uint32_t ulEventId;
+    T_BleWifi_Ctrl_EvtHandler_Fp fpFunc;
+} T_BleWifi_Ctrl_EvtHandlerTbl;
 
+#define BLEWIFI_CTRL_AUTO_CONN_STATE_IDLE   (g_tAppCtrlWifiConnectSettings.ubConnectRetry + 1)
+#define BLEWIFI_CTRL_AUTO_CONN_STATE_SCAN   (BLEWIFI_CTRL_AUTO_CONN_STATE_IDLE + 1)
+
+extern T_MwFim_GP08_WifiConnectSettings g_tAppCtrlWifiConnectSettings;
+
+void    BleWifi_Ctrl_SysModeSet(uint8_t mode);
+uint8_t BleWifi_Ctrl_SysModeGet(void);
 void    BleWifi_Ctrl_BleStatusSet(uint8_t status);
 uint8_t BleWifi_Ctrl_BleStatusGet(void);
 void    BleWifi_Ctrl_WifiStatusSet(uint8_t status);
